@@ -30,7 +30,7 @@ def clean_str(val):
     return val.replace('="', '').replace('"', '').strip()
 
 def process(nome_busca):
-    csv_files = sorted(MOV_DIR.glob("Movimentacao-diaria-*.csv"))
+    csv_files = sorted(MOV_DIR.glob("*.csv"))
     if not csv_files:
         print(f"Nenhum arquivo encontrado em {MOV_DIR}")
         return
