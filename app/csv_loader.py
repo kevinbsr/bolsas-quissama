@@ -144,7 +144,7 @@ def listar_nomes() -> list[str]:
     df = _df_completo()
     if df.empty:
         return []
-    return sorted(df["credor"].unique().tolist())
+    return sorted(df["credor"].dropna().unique().tolist())
 
 
 def sugerir(termo: str) -> list[str]:

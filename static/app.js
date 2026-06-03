@@ -190,7 +190,7 @@ const NOMES_CACHE_KEY = "bolsas_nomes";
 const NOMES_CACHE_TTL = 3600 * 1000;
 
 function normJS(s) {
-  return s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/\s+/g, " ").trim();
+  return s.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/\s+/g, " ").trim();
 }
 
 function getNomesCache() {
