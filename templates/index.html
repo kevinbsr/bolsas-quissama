@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Dashboard moderno para acompanhamento de bolsas de estudo em Quissamã/RJ."
+    />
+    <meta name="theme-color" content="#0f172a" />
+    <title>Dashboard · Bolsas Quissamã</title>
+    <link rel="stylesheet" href="/static/style.css?v=1.0.1" />
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"
+    ></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300..800&display=swap"
+      rel="stylesheet"
+    />
+    <script defer src="/static/app.js?v=1.0.1"></script>
+  </head>
+  <body class="initial-state">
+    <button id="themeToggle" class="theme-toggle" title="Alternar tema">
+      <svg
+        id="themeIcon"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      ></svg>
+    </button>
+    <header class="topo wrap">
+      <a
+        href="/"
+        id="btnHome"
+        style="
+          text-decoration: none;
+          color: inherit;
+          display: inline-block;
+          margin: 0 auto;
+        "
+      >
+        <h1>Bolsas <span>Quissamã</span></h1>
+      </a>
+      <p class="sub">
+        Acompanhe seus empenhos e pagamentos de bolsa de estudos em tempo real
+        com dados oficiais do Portal da Transparência.
+      </p>
+
+      <form id="formBusca" class="busca-wrapper">
+        <div class="busca-container">
+          <input
+            id="inputNome"
+            type="text"
+            placeholder="Digite seu nome completo..."
+            autocomplete="off"
+          />
+          <button type="submit" class="btn-search">
+            <svg class="btn-search-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <span class="btn-search-text">Consultar</span>
+          </button>
+        </div>
+        <div id="sugestoes"></div>
+      </form>
+      <div id="loading" class="hidden" style="margin-top: 20px;">
+          <div class="spinner"></div>
+      </div>
+
+        </p>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section id="estado" class="estado"></section>
+
+      <div id="resultado" class="hidden">
+        <!-- Valor Principal -->
+        <section class="hero-card" id="heroWidget"></section>
+
+        <!-- Mini Stats -->
+        <div class="stats-grid" id="statsGrid"></div>
+
+        <!-- Charts Area -->
+        <div class="viz-section">
+          <div class="chart-card">
+            <h3>Fluxo Financeiro</h3>
+            <div class="chart-container"><canvas id="gValores"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3>Frequência por Ano</h3>
+            <p
+              class="leg"
+              style="
+                font-size: 0.8rem;
+                color: var(--text-muted);
+                margin-bottom: 16px;
+              "
+            >
+              Quantidade total de processos de empenho emitidos pela prefeitura
+              em cada ano letivo.
+            </p>
+            <div class="chart-container"><canvas id="gAnos"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Transactions -->
+        <section class="data-card">
+          <div class="data-header">
+            <h3>Extrato de Empenhos</h3>
+            <div class="data-legend">
+              <div class="data-legend-item">
+                <b
+                  style="
+                    color: var(--text);
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin-bottom: 4px;
+                  "
+                >
+                  <span
+                    style="
+                      width: 6px;
+                      height: 6px;
+                      border-radius: 50%;
+                      background: var(--text);
+                      flex-shrink: 0;
+                    "
+                  ></span>
+                  EMPENHADO
+                </b>
+                <span style="color: var(--text-muted)"
+                  >O valor foi reservado no orçamento da prefeitura para pagar
+                  sua bolsa.</span
+                >
+              </div>
+              <div class="data-legend-item">
+                <b
+                  style="
+                    color: var(--md-sys-color-error);
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin-bottom: 4px;
+                  "
+                >
+                  <span
+                    style="
+                      width: 6px;
+                      height: 6px;
+                      border-radius: 50%;
+                      background: var(--md-sys-color-error);
+                      flex-shrink: 0;
+                    "
+                  ></span>
+                  LIQUIDADO
+                </b>
+                <span style="color: var(--text-muted)"
+                  >A prefeitura conferiu seus documentos e autorizou formalmente
+                  o pagamento.</span
+                >
+              </div>
+              <div class="data-legend-item">
+                <b
+                  style="
+                    color: var(--md-sys-color-success);
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin-bottom: 4px;
+                  "
+                >
+                  <span
+                    style="
+                      width: 6px;
+                      height: 6px;
+                      border-radius: 50%;
+                      background: var(--md-sys-color-success);
+                      flex-shrink: 0;
+                    "
+                  ></span>
+                  PAGO
+                </b>
+                <span style="color: var(--text-muted)"
+                  >O dinheiro saiu dos cofres públicos e foi enviado para a sua
+                  conta bancária.</span
+                >
+              </div>
+            </div>
+          </div>
+          <div class="transaction-list" id="transacoes"></div>
+        </section>
+
+        <!-- Context -->
+        <footer
+          id="comoConferir"
+          class="sub"
+          style="text-align: center; margin-top: 40px; font-size: 0.8rem"
+        ></footer>
+      </div>
+    </main>
+
+    <div class="shortcuts-guide">
+      <div class="key-hint"><kbd>/</kbd> Pesquisar</div>
+      <div class="key-hint"><kbd>T</kbd> Tema</div>
+      <div class="key-hint"><kbd>Esc</kbd> Início</div>
+    </div>
+  </body>
+</html>
