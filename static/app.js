@@ -22,7 +22,15 @@ function el(t, c, h) { const e = document.createElement(t); if (c) e.className =
 function estado(msg, tipo) {
   const container = document.getElementById("estado");
   if (!container) return;
-  container.innerHTML = msg ? `<div class="aviso-box ${tipo || ""}">${msg}</div>` : "";
+  if (!msg) { container.innerHTML = ""; return; }
+  const fechar = tipo === "erro"
+    ? `<button class="aviso-fechar" onclick="estado('')" aria-label="Fechar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+       </button>`
+    : "";
+  container.innerHTML = `<div class="aviso-box ${tipo || ""}">${msg}${fechar}</div>`;
 }
 
 function updateChartThemes() {

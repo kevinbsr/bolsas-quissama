@@ -66,11 +66,11 @@
 @keyframes toastIn {
   from {
     opacity: 0;
-    transform: translateX(40px) scale(0.9);
+    transform: translateY(-12px) scale(0.97);
   }
   to {
     opacity: 1;
-    transform: translateX(0) scale(1);
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -521,13 +521,14 @@ body.initial-state .topo {
 /* Toast */
 #estado {
   position: fixed;
-  bottom: 16px;
+  top: 16px;
   left: 16px;
   right: 16px;
   z-index: 9999;
   pointer-events: none;
 }
 .aviso-box {
+  pointer-events: auto;
   padding: 16px 20px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -549,6 +550,28 @@ body.initial-state .topo {
 .aviso-box.carregando::before {
   background: #fbbf24;
   animation: blink 1s infinite;
+}
+.aviso-box.erro {
+  border-color: rgba(251, 113, 133, 0.35);
+}
+.aviso-box.erro::before {
+  background: var(--md-sys-color-error);
+}
+.aviso-fechar {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.aviso-fechar:hover {
+  color: var(--text);
+  background: var(--surface-variant);
 }
 
 /* Shortcuts */
@@ -664,6 +687,15 @@ body.data-visible .shortcuts-guide {
   }
   .shortcuts-guide {
     display: flex;
+  }
+  #estado {
+    top: auto;
+    bottom: 16px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: 520px;
   }
   body.data-visible .shortcuts-guide {
     display: flex !important;

@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# Dados privados
+data/
+
+# Arquivos de análise offline
+pesquisas/
+
+# Ambiente
+.env
