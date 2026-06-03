@@ -74,6 +74,11 @@ def invalidar_cache():
     _df_completo.cache_clear()
 
 
+def pre_carregar():
+    """Força o carregamento dos CSVs no startup, antes da primeira requisição."""
+    _df_completo()
+
+
 def _tokens(nome: str) -> list[str]:
     return [t for t in _norm(nome).split() if t not in _STOP]
 

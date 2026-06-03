@@ -12,12 +12,17 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from .csv_loader import buscar, invalidar_cache, sugerir
+from .csv_loader import buscar, invalidar_cache, pre_carregar, sugerir
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 app = FastAPI(title="Bolsas Quissamã", version="3.0.0")
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
+
+
+@app.on_event("startup")
+def startup():
+    pre_carregar()
 
 
 @app.get("/")
