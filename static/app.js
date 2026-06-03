@@ -186,8 +186,38 @@ function initTheme() {
   }
 }
 
+const NOMES_CACHE_KEY = "bolsas_nomes";
+const NOMES_CACHE_TTL = 3600 * 1000;
+
+function normJS(s) {
+  return s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/\s+/g, " ").trim();
+}
+
+function getNomesCache() {
+  try {
+    const raw = localStorage.getItem(NOMES_CACHE_KEY);
+    if (!raw) return null;
+    const { nomes, ts } = JSON.parse(raw);
+    return Date.now() - ts < NOMES_CACHE_TTL ? nomes : null;
+  } catch { return null; }
+}
+
+function setNomesCache(nomes) {
+  try { localStorage.setItem(NOMES_CACHE_KEY, JSON.stringify({ nomes, ts: Date.now() })); } catch {}
+}
+
+let _nomesPromise = null;
+function fetchNomes() {
+  if (_nomesPromise) return _nomesPromise;
+  const cached = getNomesCache();
+  if (cached) { _nomesPromise = Promise.resolve(cached); return _nomesPromise; }
+  _nomesPromise = fetch("/api/nomes").then(r => r.json()).then(nomes => { setNomesCache(nomes); return nomes; });
+  return _nomesPromise;
+}
+
 function init() {
   initTheme();
+  fetchNomes(); // pré-carrega em background
   const input = document.getElementById("inputNome");
   const suggestionsCont = document.getElementById("sugestoes");
   const btnHome = document.getElementById("btnHome");
@@ -221,19 +251,19 @@ function init() {
   input.oninput = (e) => {
     const q = e.target.value.trim();
     if (q.length < 2) { suggestionsCont.classList.remove("active"); return; }
-    fetch(`/api/sugerir?q=${encodeURIComponent(q)}`)
-      .then(r => r.json())
-      .then(list => {
-        if (list.length === 0) { suggestionsCont.classList.remove("active"); return; }
-        suggestionsCont.innerHTML = "";
-        selectedIndex = -1;
-        list.forEach((nome, i) => {
-          const item = el("div", "sugestao-item", nome.replace(new RegExp(q, "gi"), "<b>$&</b>"));
-          item.onclick = () => { input.value = nome; suggestionsCont.classList.remove("active"); document.body.classList.remove("searching"); buscar(nome); };
-          suggestionsCont.appendChild(item);
-        });
-        suggestionsCont.classList.add("active");
+    fetchNomes().then(nomes => {
+      const tokens = normJS(q).split(" ").filter(Boolean);
+      const list = nomes.filter(n => tokens.every(t => normJS(n).includes(t))).slice(0, 10);
+      if (list.length === 0) { suggestionsCont.classList.remove("active"); return; }
+      suggestionsCont.innerHTML = "";
+      selectedIndex = -1;
+      list.forEach(nome => {
+        const item = el("div", "sugestao-item", nome.replace(new RegExp(q, "gi"), "<b>$&</b>"));
+        item.onclick = () => { input.value = nome; suggestionsCont.classList.remove("active"); document.body.classList.remove("searching"); buscar(nome); };
+        suggestionsCont.appendChild(item);
       });
+      suggestionsCont.classList.add("active");
+    });
   };
 
   input.onkeydown = (e) => {

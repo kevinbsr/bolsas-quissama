@@ -139,6 +139,14 @@ def _agg(sub: pd.DataFrame) -> list[dict]:
     return regs
 
 
+def listar_nomes() -> list[str]:
+    """Retorna todos os nomes de credores únicos para cache no cliente."""
+    df = _df_completo()
+    if df.empty:
+        return []
+    return sorted(df["credor"].unique().tolist())
+
+
 def sugerir(termo: str) -> list[str]:
     """Retorna uma lista de nomes de credores que combinam com o termo digitado."""
     df = _df_completo()

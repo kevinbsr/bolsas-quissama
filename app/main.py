@@ -12,7 +12,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from .csv_loader import buscar, invalidar_cache, pre_carregar, sugerir
+from .csv_loader import buscar, invalidar_cache, listar_nomes, pre_carregar, sugerir
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -28,6 +28,11 @@ def startup():
 @app.get("/")
 def index():
     return FileResponse(BASE_DIR / "templates" / "index.html")
+
+
+@app.get("/api/nomes")
+def api_nomes():
+    return listar_nomes()
 
 
 @app.get("/api/sugerir")
