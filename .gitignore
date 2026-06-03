@@ -12,3 +12,7 @@ pesquisas/
 
 # Ambiente
 .env
+
+# Configurações de agentes de IA
+GEMINI.md
+CLAUDE.md
