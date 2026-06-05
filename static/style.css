@@ -239,10 +239,10 @@ body.initial-state .scroll-down-btn {
 }
 
 .theme-toggle {
-  position: fixed;
-  bottom: 16px;
+  position: absolute;
+  top: 16px;
   right: 16px;
-  top: auto;
+  bottom: auto;
   background: var(--surface);
   border: 1px solid var(--border);
   width: 44px;
@@ -253,20 +253,13 @@ body.initial-state .scroll-down-btn {
   align-items: center;
   justify-content: center;
   color: var(--text);
+  z-index: 100;
 }
 .theme-toggle {
   transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 .theme-toggle svg {
   transition: transform 0.5s ease;
-}
-
-@media (max-width: 768px) {
-  body.data-visible .theme-toggle {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-  }
 }
 [data-theme="dark"] .theme-toggle svg {
   transform: rotate(360deg);
