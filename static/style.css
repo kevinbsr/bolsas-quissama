@@ -262,6 +262,19 @@ body.initial-state .scroll-down-btn {
   transition: transform 0.5s ease;
 }
 
+body.initial-state .theme-toggle {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+}
+
+@media (min-width: 768px) {
+  body.initial-state .theme-toggle {
+    top: 12px;
+    right: 24px;
+  }
+}
+
 @media (max-width: 768px) {
   body.data-visible .theme-toggle {
     opacity: 0;
