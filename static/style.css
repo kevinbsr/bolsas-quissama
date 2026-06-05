@@ -264,12 +264,14 @@ body.initial-state .theme-toggle {
   position: fixed !important;
   top: 16px;
   right: 16px;
+  transform: translateZ(0) !important;
 }
 
 body.initial-state .shortcuts-guide {
   position: fixed !important;
   bottom: 32px !important;
   left: 32px !important;
+  transform: translateZ(0) !important;
 }
 
 @media (min-width: 768px) {
@@ -277,11 +279,13 @@ body.initial-state .shortcuts-guide {
     position: fixed !important;
     top: 12px;
     right: 24px;
+    transform: translateZ(0) !important;
   }
   body.initial-state .shortcuts-guide {
     position: fixed !important;
     bottom: 32px !important;
     left: 32px !important;
+    transform: translateZ(0) !important;
   }
 }
 
