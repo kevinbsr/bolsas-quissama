@@ -107,6 +107,14 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Clipa overflow horizontal no ROOT (propaga p/ a viewport) em vez de no body.
+   No body, overflow-x:hidden força overflow-y:auto e transforma o body em
+   container de rolagem — foi isso que "colava" o toggle/atalhos fixed e os
+   fazia rolar. No html é seguro e não quebra position:fixed. */
+html {
+  overflow-x: hidden;
+}
+
 body {
   font-family: "Open Sans", sans-serif;
   background-color: var(--bg);
@@ -125,7 +133,6 @@ body {
   line-height: 1.5;
   min-height: 100vh;
   padding-bottom: 0;
-  overflow-x: hidden;
   transition:
     background-color 0.3s ease,
     color 0.3s ease;
@@ -239,6 +246,7 @@ body.initial-state .scroll-down-btn {
 }
 
 .theme-toggle {
+  /* absolute (não fixed): ancorado ao topo do documento, rola junto com a página */
   position: absolute;
   top: 16px;
   right: 16px;
@@ -258,35 +266,6 @@ body.initial-state .scroll-down-btn {
 }
 .theme-toggle svg {
   transition: transform 0.5s ease;
-}
-
-body.initial-state .theme-toggle {
-  position: fixed !important;
-  top: 16px;
-  right: 16px;
-  transform: translateZ(0) !important;
-}
-
-body.initial-state .shortcuts-guide {
-  position: fixed !important;
-  bottom: 32px !important;
-  left: 32px !important;
-  transform: translateZ(0) !important;
-}
-
-@media (min-width: 768px) {
-  body.initial-state .theme-toggle {
-    position: fixed !important;
-    top: 12px;
-    right: 24px;
-    transform: translateZ(0) !important;
-  }
-  body.initial-state .shortcuts-guide {
-    position: fixed !important;
-    bottom: 32px !important;
-    left: 32px !important;
-    transform: translateZ(0) !important;
-  }
 }
 
 @media (max-width: 768px) {
@@ -812,9 +791,10 @@ body.initial-state .shortcuts-guide {
 
 /* Shortcuts */
 .shortcuts-guide {
-  position: fixed !important;
-  bottom: 32px !important;
-  left: 32px !important;
+  /* absolute (não fixed): ancorado perto do rodapé da 1ª tela e rola com a página */
+  position: absolute;
+  top: calc(100dvh - 130px);
+  left: 32px;
   display: none;
   flex-direction: column;
   gap: 12px;
@@ -1037,10 +1017,8 @@ body.data-visible #homeStats { display: none; }
     padding: 64px 24px;
   }
   .theme-toggle {
-    position: absolute;
     top: 12px;
     right: 24px;
-    bottom: auto;
   }
   .viz-section {
     grid-template-columns: 1.6fr 1fr;
@@ -1087,7 +1065,6 @@ body.data-visible #homeStats { display: none; }
     font-size: 1.2rem;
   }
   .shortcuts-guide {
-    position: fixed !important;
     display: flex;
   }
   #estado {
@@ -1098,11 +1075,6 @@ body.data-visible #homeStats { display: none; }
     transform: translateX(-50%);
     width: max-content;
     max-width: 520px;
-  }
-  body.data-visible .shortcuts-guide {
-    display: flex !important;
-    opacity: 0;
-    visibility: hidden;
   }
 }
 
