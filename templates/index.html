@@ -88,9 +88,6 @@
         <!-- Valor Principal -->
         <section class="hero-card" id="heroWidget"></section>
 
-        <!-- Mini Stats -->
-        <div class="stats-grid" id="statsGrid"></div>
-
         <!-- Charts Area -->
         <div class="viz-section">
           <div class="chart-card">
@@ -98,19 +95,19 @@
             <div class="chart-container"><canvas id="gValores"></canvas></div>
           </div>
           <div class="chart-card">
-            <h3>Pago por mês de referência</h3>
-            <p
-              class="leg"
-              style="
-                font-size: 0.8rem;
-                color: var(--text-muted);
-                margin-bottom: 16px;
-              "
-            >
-              Valor já pago a cada mensalidade, organizado pelo mês a que a bolsa
-              se refere.
-            </p>
-            <div class="chart-container"><canvas id="gAnos"></canvas></div>
+            <div class="chart-header">
+              <h3>Processos</h3>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div class="chart-toggle">
+                  <button class="ct-btn" data-view="mensal">Mensal</button>
+                  <button class="ct-btn active" data-view="anual">Anual</button>
+                </div>
+                <button class="chart-expand-btn" id="btnExpandProcessos" title="Expandir">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+                </button>
+              </div>
+            </div>
+            <div class="chart-container"><canvas id="gProcessos"></canvas></div>
           </div>
         </div>
 
@@ -202,14 +199,101 @@
           <div class="transaction-list" id="transacoes"></div>
         </section>
 
+        <!-- Export -->
+        <div style="text-align:center; margin-top: 32px;" class="no-print">
+          <button id="btnExportPDF" class="btn-export">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Salvar como PDF / Imprimir
+          </button>
+          <div style="margin-top:8px; font-size:0.75rem; color:var(--text-muted);">
+            No diálogo que abrir, selecione <b>Salvar como PDF</b> em "Destino" para exportar, ou escolha uma impressora.
+          </div>
+        </div>
+
         <!-- Context -->
         <footer
           id="comoConferir"
-          class="sub"
-          style="text-align: center; margin-top: 40px; font-size: 0.8rem"
+          class="sub no-print"
+          style="text-align: center; margin-top: 24px; font-size: 0.8rem"
         ></footer>
       </div>
     </main>
+
+    <!-- Print document — hidden on screen, shown only during print -->
+    <div id="printDoc" class="print-only">
+      <div class="pd-header">
+        <div>
+          <div class="pd-title">Extrato de Bolsa de Estudos</div>
+          <div class="pd-subtitle">Portal da Transparência de Quissamã</div>
+        </div>
+        <div class="pd-meta">
+          <span id="pdData"></span>
+        </div>
+      </div>
+
+      <div class="pd-student">
+        <div class="pd-field"><span class="pd-label">Bolsista</span><span id="pdNome"></span></div>
+        <div class="pd-field"><span class="pd-label">Curso</span><span id="pdCurso"></span></div>
+        <div class="pd-field"><span class="pd-label">Instituição</span><span id="pdInst"></span></div>
+        <div class="pd-field"><span class="pd-label">Percentual</span><span id="pdPerc"></span></div>
+      </div>
+
+      <div class="pd-section-title">Resumo Financeiro</div>
+      <table class="pd-table pd-summary-table">
+        <thead>
+          <tr><th>Empenhado</th><th>Liquidado</th><th>Pago</th><th>A Receber</th><th>Mensalidades</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td id="pdEmp"></td>
+            <td id="pdLiq"></td>
+            <td id="pdPago"></td>
+            <td id="pdRec" class="pd-danger"></td>
+            <td id="pdQtd"></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="pd-section-title" style="margin-top:20px;">Mensalidades</div>
+      <table class="pd-table pd-list-table">
+        <thead>
+          <tr>
+            <th>Empenho</th>
+            <th>Referência / Tipo</th>
+            <th>Empenhado</th>
+            <th>Pago</th>
+            <th>Status</th>
+            <th>Dt. Empenho</th>
+            <th>Dt. Pagamento</th>
+          </tr>
+        </thead>
+        <tbody id="pdRows"></tbody>
+      </table>
+
+      <div class="pd-footer">
+        Gerado em <span id="pdDataFull"></span> · Fonte: Portal da Transparência de Quissamã ·
+        <span id="pdUrl"></span>
+      </div>
+    </div>
+
+    <!-- Chart expand modal — independent from viz-section, never disrupts layout -->
+    <div id="chartModal" class="chart-modal hidden">
+      <div class="chart-modal-card">
+        <div class="chart-header">
+          <h3>Processos</h3>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="chart-toggle">
+              <button class="ct-btn ct-modal-btn" data-view="mensal">Mensal</button>
+              <button class="ct-btn ct-modal-btn active" data-view="anual">Anual</button>
+            </div>
+            <button class="chart-expand-btn" id="btnCloseModal" title="Fechar" style="display:flex;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="10" y1="14" x2="3" y2="21"></line><line x1="21" y1="3" x2="14" y2="10"></line></svg>
+            </button>
+          </div>
+        </div>
+        <div class="chart-container chart-container-modal"><canvas id="gProcessosModal"></canvas></div>
+      </div>
+    </div>
 
     <div class="shortcuts-guide">
       <div class="key-hint"><kbd>/</kbd> Pesquisar</div>

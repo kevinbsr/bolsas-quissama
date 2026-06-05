@@ -13,8 +13,15 @@ const COR = {
   bg_danger:"rgba(251, 113, 133, 0.15)",
 };
 
-let chartValores, chartAnos;
+let chartValores, chartProcessos, chartProcessosModal;
+let _mensalidadesAtual = [];
+let chartProcessosView = "anual";
 let selectedIndex = -1;
+
+function getGridColor() {
+  return document.documentElement.getAttribute("data-theme") === "light"
+    ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.15)";
+}
 
 function brl(v) { return (v ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
 function el(t, c, h) { const e = document.createElement(t); if (c) e.className = c; if (h !== undefined) e.innerHTML = h; return e; }
@@ -36,13 +43,13 @@ function estado(msg, tipo) {
 function updateChartThemes() {
     const isDark = document.documentElement.getAttribute("data-theme") !== "light";
     const textColor = isDark ? '#f1f5f9' : '#1e293b';
-    const gridColor = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
+    const gridColor = getGridColor();
 
     Chart.defaults.color = textColor;
     Chart.defaults.borderColor = gridColor;
     Chart.defaults.font.family = "'Open Sans', sans-serif";
 
-    [chartValores, chartAnos].forEach(chart => {
+    [chartValores, chartProcessos, chartProcessosModal].forEach(chart => {
         if (chart) {
             chart.options.scales.x.ticks.color = textColor;
             chart.options.scales.y.ticks.color = textColor;
@@ -95,6 +102,83 @@ function mensalidadeLabel(x) {
   return "Mensalidade (mês não identificado)";
 }
 
+function dateKey(dateStr, view) {
+  if (!dateStr) return null;
+  const p = dateStr.split("/");
+  if (p.length !== 3) return null;
+  return view === "anual" ? p[2] : `${p[2]}-${p[1]}`;
+}
+
+function buildProcessosData(mensalidades, view) {
+  const emp = {}, pag = {};
+  mensalidades.forEach(m => {
+    const ek = dateKey(m.data_empenho, view);
+    if (ek) emp[ek] = (emp[ek] || 0) + 1;
+    if ((m.pago || 0) > 0) {
+      const pk = dateKey(m.data_pagamento, view);
+      if (pk) pag[pk] = (pag[pk] || 0) + 1;
+    }
+  });
+  const keys = [...new Set([...Object.keys(emp), ...Object.keys(pag)])].sort();
+  const labels = view === "anual" ? keys : keys.map(k => mesLabel(k));
+  return { labels, emp: keys.map(k => emp[k] || 0), pag: keys.map(k => pag[k] || 0) };
+}
+
+function renderModalChart(view) {
+  const { labels, emp, pag } = buildProcessosData(_mensalidadesAtual, view);
+  const gc = getGridColor();
+  if (chartProcessosModal) chartProcessosModal.destroy();
+  chartProcessosModal = new Chart(document.getElementById("gProcessosModal"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        { label: "Empenhados", data: emp, backgroundColor: COR.chart1, borderRadius: 4 },
+        { label: "Pagos",      data: pag, backgroundColor: COR.chart3, borderRadius: 4 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true } },
+      scales: {
+        x: { grid: { display: false }, ticks: { display: false } },
+        y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 }, grid: { color: gc } }
+      }
+    }
+  });
+  document.querySelectorAll(".ct-modal-btn").forEach(btn =>
+    btn.classList.toggle("active", btn.dataset.view === view)
+  );
+}
+
+function renderChartProcessos(view) {
+  chartProcessosView = view;
+  const { labels, emp, pag } = buildProcessosData(_mensalidadesAtual, view);
+  const gc = getGridColor();
+  if (chartProcessos) chartProcessos.destroy();
+  chartProcessos = new Chart(document.getElementById("gProcessos"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        { label: "Empenhados", data: emp, backgroundColor: COR.chart1, borderRadius: 4 },
+        { label: "Pagos",      data: pag, backgroundColor: COR.chart3, borderRadius: 4 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true } },
+      scales: {
+        x: { grid: { display: false }, ticks: { display: false } },
+        y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 }, grid: { color: gc } }
+      }
+    }
+  });
+  document.querySelectorAll(".ct-btn").forEach(btn =>
+    btn.classList.toggle("active", btn.dataset.view === view)
+  );
+}
+
 function render(d) {
   if (d.encontrado === false) {
     estado(`"${d.nome}" não está na lista de bolsistas do Ensino Superior / Especialização.`, "erro");
@@ -109,57 +193,46 @@ function render(d) {
   const resCont = document.getElementById("resultado");
   resCont.classList.remove("hidden");
 
-  const ctx = [d.percentual ? `${d.percentual}% de bolsa` : null, d.curso, d.instituicao].filter(Boolean).join(" · ");
   const hero = document.getElementById("heroWidget");
+  const qtdPagas = (d.mensalidades || []).filter(m => (m.pago || 0) > 0).length;
+  const tagPerc = d.percentual ? `<span class="hero-tag">${d.percentual}% de bolsa</span>` : '';
   hero.innerHTML = `
-    <div class="label">${d.nome}</div>
-    <div class="value">${brl(r.a_pagar)}</div>
-    <div class="footer">${ctx || "Bolsa de estudo"} · saldo a receber (liquidado e não pago)</div>
+    <div class="hero-id">
+      <div class="hero-nome">${d.nome}</div>
+      <div class="hero-curso">${d.curso || 'Ensino Superior'}</div>
+      <div class="hero-inst">${d.instituicao || ''}</div>
+      <div class="hero-tags">${tagPerc}</div>
+    </div>
+    <div class="hero-sep"></div>
+    <div class="hero-fin">
+      <div class="hero-pago">
+        <div class="hero-plbl">A receber</div>
+        <div class="hero-pval">${brl(r.a_pagar)}</div>
+        <span class="hero-tag" style="margin-top: 10px; display: inline-flex;">${qtdPagas}/${r.qtd} mensalidades pagas</span>
+      </div>
+      <div class="hero-badges">
+        <div class="hero-status recebido"><div class="hero-sv">${brl(r.pago)}</div><div class="hero-sl">total recebido</div></div>
+        <div class="hero-status empenhado"><div class="hero-sv">${brl(r.empenhado)}</div><div class="hero-sl">total empenhado</div></div>
+      </div>
+    </div>
   `;
 
-  const grid = document.getElementById("statsGrid");
-  grid.innerHTML = "";
-  const stats = [
-    { l: "Mensalidades", v: r.qtd },
-    { l: "Total Empenhado", v: brl(r.empenhado) },
-    { l: "Total Pago", v: brl(r.pago) },
-    { l: "Pendente", v: brl(r.a_pagar), d: r.a_pagar > 0 }
-  ];
-  stats.forEach(s => {
-    grid.innerHTML += `<div class="stat-card ${s.d ? 'danger' : ''}"><div class="label">${s.l}</div><div class="value">${s.v}</div></div>`;
-  });
-
   updateChartThemes();
+
+  const gc = getGridColor();
 
   if (chartValores) chartValores.destroy();
   chartValores = new Chart(document.getElementById("gValores"), {
     type: "bar",
     data: {
-      labels: ["Empenhado", "Liquidado", "Pago", "A pagar"],
-      datasets: [{ data: [r.empenhado, r.liquidado, r.pago, r.a_pagar], backgroundColor: [COR.chart1, COR.chart2, COR.chart3, COR.chart4], borderRadius: 8 }]
+      labels: ["Liquidado", "Pago", "A pagar"],
+      datasets: [{ data: [r.liquidado, r.pago, r.a_pagar], backgroundColor: [COR.chart2, COR.chart3, COR.chart4], borderRadius: 8 }]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true } } },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: gc } } } },
   });
 
-  const porMes = {};
-  (d.mensalidades || []).forEach(m => {
-    const ms = mesesDe(m);
-    if (!ms.length) { porMes["sem"] = (porMes["sem"] || 0) + (m.pago || 0); return; }
-    const share = (m.pago || 0) / ms.length;  // rateia o valor entre os meses cobertos
-    ms.forEach(k => { porMes[k] = (porMes[k] || 0) + share; });
-  });
-  const chavesMes = Object.keys(porMes).sort();
-  if (chartAnos) chartAnos.destroy();
-  chartAnos = new Chart(document.getElementById("gAnos"), {
-    type: "bar",
-    data: {
-      labels: chavesMes.map(k => k === "sem" ? "Sem mês" : mesLabel(k)),
-      datasets: [
-        { label: "Pago por mês de referência", data: chavesMes.map(k => porMes[k]), backgroundColor: COR.chart3, borderRadius: 4 }
-      ]
-    },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true } } },
-  });
+  _mensalidadesAtual = d.mensalidades || [];
+  renderChartProcessos(chartProcessosView);
 
   const list = document.getElementById("transacoes");
   list.innerHTML = "";
@@ -198,6 +271,55 @@ function render(d) {
     </span>
   `;
   window._nomeAtual = d.nome;
+  window._dadosAtual = d;
+  document.getElementById("btnExportPDF").onclick = () => exportPDF(d);
+}
+
+function exportPDF(d) {
+  const r = d.resumo || {};
+  const agora = new Date();
+  const dataFmt = agora.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+  const dataHora = agora.toLocaleString("pt-BR");
+
+  document.getElementById("pdNome").textContent = d.nome;
+  document.getElementById("pdCurso").textContent = d.curso || "—";
+  document.getElementById("pdInst").textContent = d.instituicao || "—";
+  document.getElementById("pdPerc").textContent = d.percentual ? `${d.percentual}%` : "—";
+  document.getElementById("pdData").textContent = dataFmt;
+  document.getElementById("pdDataFull").textContent = dataHora;
+  document.getElementById("pdUrl").textContent = d.url || "";
+  document.getElementById("pdEmp").textContent = brl(r.empenhado);
+  document.getElementById("pdLiq").textContent = brl(r.liquidado);
+  document.getElementById("pdPago").textContent = brl(r.pago);
+  document.getElementById("pdRec").textContent = brl(r.a_pagar);
+  const qtdPagas = (d.mensalidades || []).filter(m => (m.pago || 0) > 0).length;
+  document.getElementById("pdQtd").textContent = `${qtdPagas}/${r.qtd} pagas`;
+
+  const tbody = document.getElementById("pdRows");
+  tbody.innerHTML = "";
+  (d.mensalidades || []).forEach((m, i) => {
+    const pendente = Math.max((m.liquidado || 0) - (m.pago || 0), 0);
+    const status = (m.pago > 0 && pendente <= 0) ? "Pago" : m.liquidado > 0 ? "A pagar" : "Empenhado";
+    const tr = document.createElement("tr");
+    if (m.pago > 0 && pendente <= 0) tr.className = "pd-row-pago";
+    else if (m.liquidado > 0) tr.className = "pd-row-pendente";
+    tr.innerHTML = `
+      <td>#${m.empenho}</td>
+      <td>${mensalidadeLabel(m)}</td>
+      <td>${brl(m.empenhado)}</td>
+      <td>${brl(m.pago)}</td>
+      <td><span class="pd-status ${status === 'Pago' ? 'pd-ok' : status === 'A pagar' ? 'pd-warn' : ''}">${status}</span></td>
+      <td>${m.data_empenho || "—"}</td>
+      <td>${m.data_pagamento || "—"}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  const tituloOriginal = document.title;
+  const nomeArquivo = `Bolsa_${d.nome.replace(/\s+/g, "_")}_${agora.getFullYear()}`;
+  document.title = nomeArquivo;
+  window.print();
+  document.title = tituloOriginal;
 }
 
 function buscar(nome) {
@@ -309,7 +431,7 @@ function init() {
       selectedIndex = -1;
       list.forEach(nome => {
         const item = el("div", "sugestao-item", nome.replace(new RegExp(q, "gi"), "<b>$&</b>"));
-        item.onclick = () => { input.value = nome; suggestionsCont.classList.remove("active"); document.body.classList.remove("searching"); buscar(nome); };
+        item.onclick = () => { suggestionsCont.classList.remove("active"); document.body.classList.remove("searching"); input.value = ""; buscar(nome); };
         suggestionsCont.appendChild(item);
       });
       suggestionsCont.classList.add("active");
@@ -324,7 +446,7 @@ function init() {
         else if (e.key === "Enter") {
           e.preventDefault();
           const nome = selectedIndex > -1 ? items[selectedIndex].textContent : (items.length > 0 ? items[0].textContent : null);
-          if (nome) { input.value = nome; suggestionsCont.classList.remove("active"); buscar(nome); }
+          if (nome) { suggestionsCont.classList.remove("active"); input.value = ""; buscar(nome); }
         } else if (e.key === "Escape") { suggestionsCont.classList.remove("active"); }
     }
   };
@@ -333,7 +455,8 @@ function init() {
     if (e.key === "/" && document.activeElement !== input) { e.preventDefault(); input.focus(); }
     if (e.key.toLowerCase() === "t" && document.activeElement !== input) { document.getElementById("themeToggle").click(); }
     if (e.key === "Escape") {
-      if (suggestionsCont.classList.contains("active")) suggestionsCont.classList.remove("active");
+      if (!document.getElementById("chartModal")?.classList.contains("hidden")) document.getElementById("btnCloseModal").click();
+      else if (suggestionsCont.classList.contains("active")) suggestionsCont.classList.remove("active");
       else btnHome.click();
     }
   };
@@ -356,12 +479,40 @@ function init() {
     }, 300);
   };
 
+  document.querySelectorAll(".ct-btn").forEach(btn => {
+    btn.onclick = () => renderChartProcessos(btn.dataset.view);
+  });
+
+  const expandBtn = document.getElementById("btnExpandProcessos");
+  const closeModalBtn = document.getElementById("btnCloseModal");
+  const chartModal = document.getElementById("chartModal");
+
+  const openModal = () => {
+    chartModal.classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+    renderModalChart(chartProcessosView);
+  };
+  const closeModal = () => {
+    chartModal.classList.add("hidden");
+    document.body.style.overflow = "";
+    if (chartProcessosModal) { chartProcessosModal.destroy(); chartProcessosModal = null; }
+  };
+
+  if (expandBtn) expandBtn.onclick = openModal;
+  if (closeModalBtn) closeModalBtn.onclick = closeModal;
+  chartModal.addEventListener("click", e => { if (e.target === chartModal) closeModal(); });
+
+  document.querySelectorAll(".ct-modal-btn").forEach(btn => {
+    btn.onclick = () => { chartProcessosView = btn.dataset.view; renderModalChart(chartProcessosView); renderChartProcessos(chartProcessosView); };
+  });
+
   document.getElementById("formBusca").onsubmit = (e) => {
     e.preventDefault();
     const n = input.value.trim();
     if (n.length > 3) {
       suggestionsCont.classList.remove("active");
       document.body.classList.remove("searching");
+      input.value = "";
       buscar(n);
     }
   };
