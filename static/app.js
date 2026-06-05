@@ -15,6 +15,8 @@ const COR = {
 
 let chartValores, chartProcessos, chartProcessosModal;
 let chartPercentual, chartStatus;
+let _resumoGeral = null;
+let _rankDesktop = window.matchMedia("(min-width: 769px)").matches;
 let _mensalidadesAtual = [];
 let chartProcessosView = "anual";
 let selectedIndex = -1;
@@ -128,8 +130,9 @@ function renderRankList(elId, items, rotuloDemais) {
   const ul = document.getElementById(elId);
   if (!ul) return;
   const all = items || [];
-  const top = all.slice(0, 10);
-  const resto = all.slice(10);
+  const limite = window.matchMedia("(min-width: 769px)").matches ? 10 : 5;
+  const top = all.slice(0, limite);
+  const resto = all.slice(limite);
   const max = top.length ? Math.max(...top.map(i => i.empenhado)) : 0;
   let html = top.map((i, idx) => {
     const pct = max > 0 ? (i.empenhado / max * 100) : 0;
@@ -187,6 +190,7 @@ function renderHomeStats(d) {
   }
 
   // B — listas de ranking (instituições e cursos)
+  _resumoGeral = d;
   renderRankList("rankInstituicoes", d.por_instituicao, "outras instituições");
   renderRankList("rankCursos", d.por_curso, "outros cursos");
 
@@ -504,6 +508,16 @@ function init() {
   initTheme();
   fetchNomes();
   fetchResumoGeral();
+
+  // re-renderiza as listas ao cruzar o breakpoint (top 5 mobile / top 10 desktop)
+  window.addEventListener("resize", () => {
+    const desktop = window.matchMedia("(min-width: 769px)").matches;
+    if (desktop !== _rankDesktop && _resumoGeral) {
+      _rankDesktop = desktop;
+      renderRankList("rankInstituicoes", _resumoGeral.por_instituicao, "outras instituições");
+      renderRankList("rankCursos", _resumoGeral.por_curso, "outros cursos");
+    }
+  });
   const input = document.getElementById("inputNome");
   const suggestionsCont = document.getElementById("sugestoes");
   const btnHome = document.getElementById("btnHome");
