@@ -45,7 +45,7 @@ uvicorn app.main:app --reload            # http://127.0.0.1:8000
 
 O scraping exige um navegador real (Playwright + Chromium do sistema), então roda
 **fora** do app — localmente ou num cron na Oracle Always Free (VM de verdade;
-Render/Fly grátis não rodam navegador).
+o tier grátis do Render não roda navegador).
 
 ```bash
 pip install -r requirements-coleta.txt   # pandas, playwright, pypdf
@@ -84,6 +84,6 @@ fora do versionamento (`.gitignore`).
 
 ## Deploy
 
-`render.yaml` (Render) e `Dockerfile`/`fly.toml` (Fly.io) já configurados. O app
-serve o dataset estático; para atualizar, rode o pipeline offline e faça commit do
-JSON.
+`render.yaml` (Render) já configurado — deploy automático a cada push na `master`.
+O app serve o dataset estático; para atualizar, rode o pipeline offline e faça commit
+do JSON.
