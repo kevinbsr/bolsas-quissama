@@ -482,9 +482,6 @@ body.initial-state .topo {
 .tr-name {
   font-weight: 700;
   font-size: 0.95rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .tr-unit {
   font-size: 0.75rem;

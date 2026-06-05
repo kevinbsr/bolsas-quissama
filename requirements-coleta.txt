@@ -1,0 +1,6 @@
+# Dependências do pipeline OFFLINE de coleta (não usadas pelo app em produção).
+# Instale só na máquina/cron que constrói app/dados/bolsas_publicas.json.
+-r requirements.txt
+pandas>=2.2
+playwright>=1.40
+pypdf>=4.0

@@ -1,102 +1,89 @@
 # Bolsas Quissamã
 
-Portal público para acompanhamento dos empenhos e pagamentos de bolsas de estudo do município de Quissamã/RJ, com dados oficiais extraídos do Portal da Transparência.
+Portal público para os **alunos bolsistas** de Quissamã/RJ acompanharem, mês a
+mês, o pagamento da sua bolsa de estudos — com dados oficiais do Portal da
+Transparência da prefeitura.
 
 **Demo:** https://bolsas-quissama.onrender.com
 
----
-
-## O que o portal exibe
-
-- **Valor a receber** — saldo oficial baseado em empenhos liquidados e não pagos
-- **Extrato de empenhos** — cada processo com status (Empenhado / Liquidado / Pago), valores e datas
-- **Gráficos** — fluxo financeiro e frequência de empenhos por ano
-- **Busca por nome** — autocomplete com os credores presentes nos dados oficiais
+> Cobertura: bolsistas do **Ensino Superior** e **Especialização** (que são
+> reembolsados individualmente e, por isso, têm empenho no nome do aluno). O
+> Ensino Médio é pago de forma coletiva à instituição e não tem registro
+> individual no portal.
 
 ---
 
-## Fonte dos dados
+## Como funciona
 
-Os dados vêm dos CSVs exportados pelo Portal da Transparência de Quissamã (Cidade360/IPM):
+```
+relacao-bolsistas (roster)  ─┐
+                             ├─►  scripts/coletar_bolsas.py  ─►  app/dados/bolsas_publicas.json  ─►  app (FastAPI)
+movimentacao-diaria/*.csv  ──┘        (Playwright + portal)            (dataset público)               busca por nome
+```
 
-**Portal → Despesas → Movimentação Diária → Exportar Dados**
-
-Os arquivos exportados devem ser salvos em `movimentacao-diaria/` com o ano no nome do arquivo (ex: `2025.csv`). O sistema detecta o ano automaticamente.
+1. **Roster** — lista oficial dos bolsistas (a prefeitura publica em PDF;
+   convertida para `relacao-bolsistas_padronizado.csv`).
+2. **Coleta** — para cada aluno, o `coletar_bolsas.py` consulta o Portal da
+   Transparência, abre o detalhe de cada empenho e extrai o **mês da
+   mensalidade** (do texto do empenho) e a classificação (Função=Educação +
+   Ação=Programa de Bolsas). Valores/datas/status vêm dos CSVs de Movimentação
+   Diária. Resultado: `app/dados/bolsas_publicas.json`.
+3. **App** — lê só esse dataset (leve, sem pandas) e mostra, por aluno, as
+   mensalidades organizadas por mês de referência.
 
 ---
 
-## Rodando localmente
+## Rodando o app
 
 ```bash
-git clone https://github.com/SEU_USUARIO/bolsas-quissama.git
-cd bolsas-quissama
-
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-
-uvicorn app.main:app --reload
-# acesse http://127.0.0.1:8000
+pip install -r requirements.txt          # só fastapi + uvicorn
+uvicorn app.main:app --reload            # http://127.0.0.1:8000
 ```
 
----
+## Atualizando os dados (pipeline offline)
 
-## Atualizando os dados
-
-1. Exporte o CSV do Portal da Transparência
-2. Salve em `movimentacao-diaria/` (ex: `2026.csv`)
-3. Chame o endpoint de recarga:
+O scraping exige um navegador real (Playwright + Chromium do sistema), então roda
+**fora** do app — localmente ou num cron na Oracle Always Free (VM de verdade;
+Render/Fly grátis não rodam navegador).
 
 ```bash
-curl -X POST "https://bolsas-quissama.onrender.com/api/recarregar?secret=SEU_RELOAD_SECRET"
+pip install -r requirements-coleta.txt   # pandas, playwright, pypdf
+python scripts/coletar_bolsas.py         # reconstrói app/dados/bolsas_publicas.json
+# --limite N  → processa só os N primeiros alunos (validação)
 ```
 
-O `RELOAD_SECRET` está configurado nas variáveis de ambiente do Render.
+Os detalhes são cacheados em `data/cache/detalhe/`, então reexecuções só buscam o
+que falta. Depois, faça commit do `bolsas_publicas.json` atualizado.
 
 ---
 
 ## Estrutura
 
 ```
-app/
-  main.py          API FastAPI — endpoints de busca, sugestão e recarga
-  csv_loader.py    Leitura, parsing e cache dos CSVs em memória
-static/
-  style.css        Interface Material 3, mobile-first
-  app.js           Lógica do frontend (busca, gráficos, tema)
-templates/
-  index.html       Página principal
-movimentacao-diaria/
-  2022.csv         CSVs exportados do Portal da Transparência
-  2023.csv
-  ...
-render.yaml        Configuração de deploy (Render.com)
+app/main.py              FastAPI: /api/buscar, /api/sugerir, /api/nomes
+app/bolsa_store.py       loader do dataset (runtime, sem pandas)
+app/csv_loader.py        parsing dos CSVs de Movimentação Diária (usado só pelo builder)
+app/dados/bolsas_publicas.json   dataset público servido pelo app
+scripts/coletar_bolsas.py        builder: roster + portal → dataset
+movimentacao-diaria/*.csv        export bruto do portal (entrada do builder)
+static/ templates/       interface mobile-first (Chart.js)
 ```
-
----
-
-## API
-
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `GET` | `/api/sugerir?q=nome` | Autocomplete de credores |
-| `GET` | `/api/buscar?nome=nome` | Empenhos de um credor |
-| `POST` | `/api/recarregar?secret=xxx` | Invalida o cache de CSVs |
-| `GET` | `/api/saude` | Health check |
-
----
-
-## Deploy
-
-O projeto está configurado para o [Render.com](https://render.com) via `render.yaml`. Qualquer push na branch principal dispara um novo deploy automaticamente.
-
-**Variáveis de ambiente necessárias:**
-
-| Variável | Descrição |
-|----------|-----------|
-| `RELOAD_SECRET` | Token para proteger o endpoint `/api/recarregar` |
 
 ---
 
 ## Privacidade
 
-Os dados exibidos (nome e CPF do credor) são públicos no Portal da Transparência.
+O dataset publicado (`app/dados/bolsas_publicas.json`) contém apenas dados
+públicos do portal: nome do aluno, curso/instituição/percentual da bolsa e os
+empenhos (valores, datas, mês). **Não** inclui endereço nem CPF. O roster de
+entrada (`relacao-bolsistas_padronizado.csv` / PDF), que traz endereços, fica
+fora do versionamento (`.gitignore`).
+
+---
+
+## Deploy
+
+`render.yaml` (Render) e `Dockerfile`/`fly.toml` (Fly.io) já configurados. O app
+serve o dataset estático; para atualizar, rode o pipeline offline e faça commit do
+JSON.

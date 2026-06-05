@@ -4,8 +4,13 @@ __pycache__/
 *.pyo
 .venv/
 
-# Dados privados
+# Dados privados / brutos (exports e cache do scraper)
 data/
+
+# Roster de entrada do builder — contém ENDEREÇOS dos alunos (dado pessoal).
+# O dataset publicado (app/dados/bolsas_publicas.json) NÃO inclui endereço.
+lista-bolsistas-2026.pdf
+relacao-bolsistas_padronizado.csv
 
 # Arquivos de análise offline
 pesquisas/
@@ -16,3 +21,4 @@ pesquisas/
 # Configurações de agentes de IA
 GEMINI.md
 CLAUDE.md
+.env

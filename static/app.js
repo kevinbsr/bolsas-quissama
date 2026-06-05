@@ -56,7 +56,51 @@ function updateChartThemes() {
     });
 }
 
+const MESES_PT = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+function mesValido(ref) { return ref && /^\d{4}-\d{2}$/.test(ref); }
+function mesLabel(ref) {
+  if (!mesValido(ref)) return "Mês não identificado";
+  const [a, m] = ref.split("-");
+  return `${MESES_PT[parseInt(m, 10) - 1]}/${a}`;
+}
+// Cada empenho cobre uma lista de meses: 1 = mensalidade única; vários = intervalo/acordo.
+function mesesDe(x) {
+  return (x.meses && x.meses.length) ? x.meses : (mesValido(x.mes_referencia) ? [x.mes_referencia] : []);
+}
+function periodoLabel(ms) {
+  const nome = k => MESES_PT[parseInt(k.split("-")[1], 10) - 1];
+  const ano = k => k.split("-")[0];
+  const seq = k => { const [a, m] = k.split("-"); return parseInt(a, 10) * 12 + parseInt(m, 10); };
+  const contig = ms.every((k, i) => i === 0 || seq(k) === seq(ms[i - 1]) + 1);
+  const ini = ms[0], fim = ms[ms.length - 1];
+  if (contig) {
+    return ano(ini) === ano(fim)
+      ? `${nome(ini)} a ${nome(fim)}/${ano(fim)}`
+      : `${nome(ini)}/${ano(ini)} a ${nome(fim)}/${ano(fim)}`;
+  }
+  return ms.map(k => `${nome(k)}/${ano(k)}`).join(", ");
+}
+function mensalidadeLabel(x) {
+  const ms = mesesDe(x);
+  const periodo = ms.length ? periodoLabel(ms) : null;
+  const tipo = x.tipo || "mensalidade";
+  if (tipo === "acordo") {
+    const p = x.parcela;
+    const suf = p === "única" ? "— parcela única" : p ? `— ${p}ª parcela` : "";
+    return periodo ? `Acordo ${suf} · ${periodo}` : `Acordo ${suf}`.trim();
+  }
+  if (tipo === "conjunto") return periodo ? `Pagamento conjunto · ${periodo}` : "Pagamento conjunto";
+  if (ms.length === 1) return `Mensalidade de ${mesLabel(ms[0])}`;
+  return "Mensalidade (mês não identificado)";
+}
+
 function render(d) {
+  if (d.encontrado === false) {
+    estado(`"${d.nome}" não está na lista de bolsistas do Ensino Superior / Especialização.`, "erro");
+    document.getElementById("loading").classList.add("hidden");
+    return;
+  }
   const r = d.resumo || {};
   document.body.classList.remove("initial-state");
   document.body.classList.remove("searching");
@@ -65,17 +109,18 @@ function render(d) {
   const resCont = document.getElementById("resultado");
   resCont.classList.remove("hidden");
 
+  const ctx = [d.percentual ? `${d.percentual}% de bolsa` : null, d.curso, d.instituicao].filter(Boolean).join(" · ");
   const hero = document.getElementById("heroWidget");
   hero.innerHTML = `
-    <div class="label">Total a receber por ${d.nome}</div>
+    <div class="label">${d.nome}</div>
     <div class="value">${brl(r.a_pagar)}</div>
-    <div class="footer">Saldo oficial baseado em empenhos liquidados e não pagos.</div>
+    <div class="footer">${ctx || "Bolsa de estudo"} · saldo a receber (liquidado e não pago)</div>
   `;
 
   const grid = document.getElementById("statsGrid");
   grid.innerHTML = "";
   const stats = [
-    { l: "Processos", v: r.qtd },
+    { l: "Mensalidades", v: r.qtd },
     { l: "Total Empenhado", v: brl(r.empenhado) },
     { l: "Total Pago", v: brl(r.pago) },
     { l: "Pendente", v: brl(r.a_pagar), d: r.a_pagar > 0 }
@@ -96,41 +141,33 @@ function render(d) {
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true } } },
   });
 
-  const anosSet = new Set();
-  const empenhadosPorAno = {}, pagosPorAno = {};
-  (d.registros || []).forEach(x => {
-    if (x.empenhado > 0 && x.ano) {
-      anosSet.add(x.ano);
-      empenhadosPorAno[x.ano] = (empenhadosPorAno[x.ano] || 0) + 1;
-    }
-    if (x.pagamentos_por_ano) {
-      Object.entries(x.pagamentos_por_ano).forEach(([anoPag, qtd]) => {
-        anosSet.add(anoPag);
-        pagosPorAno[anoPag] = (pagosPorAno[anoPag] || 0) + qtd;
-      });
-    }
+  const porMes = {};
+  (d.mensalidades || []).forEach(m => {
+    const ms = mesesDe(m);
+    if (!ms.length) { porMes["sem"] = (porMes["sem"] || 0) + (m.pago || 0); return; }
+    const share = (m.pago || 0) / ms.length;  // rateia o valor entre os meses cobertos
+    ms.forEach(k => { porMes[k] = (porMes[k] || 0) + share; });
   });
-  const labelsAnos = Array.from(anosSet).sort();
+  const chavesMes = Object.keys(porMes).sort();
   if (chartAnos) chartAnos.destroy();
   chartAnos = new Chart(document.getElementById("gAnos"), {
     type: "bar",
     data: {
-      labels: labelsAnos,
+      labels: chavesMes.map(k => k === "sem" ? "Sem mês" : mesLabel(k)),
       datasets: [
-        { label: "Empenhos Criados", data: labelsAnos.map(a => empenhadosPorAno[a] || 0), backgroundColor: COR.chart1, borderRadius: 4 },
-        { label: "Pagamentos Efetuados", data: labelsAnos.map(a => pagosPorAno[a] || 0), backgroundColor: COR.success, borderRadius: 4 }
+        { label: "Pago por mês de referência", data: chavesMes.map(k => porMes[k]), backgroundColor: COR.chart3, borderRadius: 4 }
       ]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'bottom' } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0 } } } },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true } } },
   });
 
   const list = document.getElementById("transacoes");
   list.innerHTML = "";
-  (d.registros || []).forEach(x => {
-    const pendente = Math.max(x.liquidado - x.pago, 0);
+  (d.mensalidades || []).forEach(x => {
+    const pendente = Math.max((x.liquidado || 0) - (x.pago || 0), 0);
     let chipHtml = "";
     if (x.pago > 0 && pendente <= 0) chipHtml = `<span class="status-pill" style="font-size: 0.65rem; padding: 6px 12px; border-radius: 8px; font-weight: 800; background: ${COR.bg_pago}; color: ${COR.success};">PAGO</span>`;
-    else if (x.liquidado > 0) chipHtml = `<span class="status-pill" style="font-size: 0.65rem; padding: 6px 12px; border-radius: 8px; font-weight: 800; background: ${COR.bg_danger}; color: ${COR.danger};">LIQUIDADO</span>`;
+    else if (x.liquidado > 0) chipHtml = `<span class="status-pill" style="font-size: 0.65rem; padding: 6px 12px; border-radius: 8px; font-weight: 800; background: ${COR.bg_danger}; color: ${COR.danger};">A PAGAR</span>`;
     else chipHtml = `<span class="status-pill" style="font-size: 0.65rem; padding: 6px 12px; border-radius: 8px; font-weight: 800; background: ${COR.bg_emp}; color: var(--text);">EMPENHADO</span>`;
 
     list.innerHTML += `
@@ -140,8 +177,7 @@ function render(d) {
           ${chipHtml}
         </div>
         <div class="tr-body">
-          <span class="tr-name">${x.credor}</span>
-          <small class="tr-unit">${x.unidade_gestora}</small>
+          <span class="tr-name">${mensalidadeLabel(x)}</span>
           <div class="tr-dates">
             <span>EMP <b>${x.data_empenho || '—'}</b></span>
             <span>LIQ <b>${x.data_liquidacao || '—'}</b></span>
