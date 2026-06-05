@@ -16,6 +16,10 @@ from pathlib import Path
 DATASET = Path(__file__).resolve().parent / "dados" / "bolsas_publicas.json"
 _STOP = {"DA", "DE", "DO", "DAS", "DOS", "E"}
 
+# Ano do roster oficial usado para montar o dataset (lista de bolsistas ativos).
+# Atualizar ao reprocessar com o roster de um novo ano.
+ANO_ROSTER = 2026
+
 
 def _norm(s: str) -> str:
     return re.sub(r"\s+", " ",
@@ -100,6 +104,7 @@ def resumo_geral() -> dict:
         por_perc[perc] = por_perc.get(perc, 0) + 1
 
     return {
+        "ano_roster": ANO_ROSTER,
         "total_alunos": len(alunos),
         "total_empenhado": round(total_emp, 2),
         "total_liquidado": round(total_liq, 2),

@@ -168,10 +168,11 @@ function renderHomeStats(d) {
   const hsM = document.getElementById("hsMetrics");
   if (hsM) {
     const pct = d.total_empenhado > 0 ? Math.round(d.total_pago / d.total_empenhado * 100) : 0;
+    const ano = d.ano_roster ? ` em ${d.ano_roster}` : "";
     hsM.innerHTML =
-      `<span class="hs-pill">${d.total_alunos} bolsistas</span>` +
+      `<span class="hs-pill">${d.total_alunos} bolsistas${ano}</span>` +
       `<span class="hs-pill">${brl(d.total_empenhado)} investidos</span>` +
-      `<span class="hs-pill">${brl(d.total_pago)} pagos <b>(${pct}%)</b></span>` +
+      `<span class="hs-pill">${brl(d.total_pago)} pagos (${pct}%)</span>` +
       `<span class="hs-pill">${d.mensalidades_pagas}/${d.total_mensalidades} mensalidades</span>`;
   }
 

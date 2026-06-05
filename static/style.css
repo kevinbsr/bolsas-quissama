@@ -762,21 +762,23 @@ body.data-visible .shortcuts-guide {
 
 /* A — pills acima da busca */
 .hs-metrics-topo {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin-bottom: 20px;
-  min-height: 28px;
 }
 body.data-visible .hs-metrics-topo { display: none; }
 .hs-pill {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 20px;
-  padding: 4px 14px;
+  padding: 8px 14px;
   font-size: 0.78rem;
   color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 .hs-pill b { color: var(--text); }
 
@@ -892,6 +894,11 @@ body.data-visible #homeStats { display: none; }
 /* ── Desktop Overrides (769px+) ──────────────────────────────────────── */
 @media (min-width: 769px) {
   /* Home stats */
+  .hs-metrics-topo {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
   .hs-cards { grid-template-columns: repeat(4, 1fr); }
   .hs-rankings { grid-template-columns: repeat(2, 1fr); }
   .hs-secondary { grid-template-columns: repeat(2, 1fr); }
