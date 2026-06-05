@@ -124,7 +124,7 @@ body {
   color: var(--text);
   line-height: 1.5;
   min-height: 100vh;
-  padding-bottom: 40px;
+  padding-bottom: 0;
   overflow-x: hidden;
   transition:
     background-color 0.3s ease,
@@ -1108,6 +1108,89 @@ body.data-visible #homeStats { display: none; }
 .btn-export:hover {
   color: var(--text);
   border-color: var(--brand);
+}
+
+/* ── Rodapé ───────────────────────────────────────────── */
+.rodape {
+  background-color: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 40px 0 20px 0;
+  margin-top: 64px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.rodape-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+@media (min-width: 768px) {
+  .rodape-content {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.rodape-logo h3 {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
+}
+
+.rodape-logo h3 span {
+  color: var(--brand);
+}
+
+.rodape-logo p {
+  font-size: 0.8rem;
+}
+
+.rodape-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+}
+
+.rodape-links a {
+  color: var(--text-muted);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.3s ease;
+  font-weight: 600;
+}
+
+.rodape-links a:hover {
+  color: var(--brand);
+}
+
+.external-link-icon {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.rodape-bottom {
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+@media (min-width: 768px) {
+  .rodape-bottom {
+    flex-direction: row;
+    justify-content: space-between;
+  }
 }
 
 /* Print document — hidden on screen */
