@@ -10,7 +10,7 @@
     <meta name="theme-color" content="#0f172a" />
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
     <title>Dashboard · Bolsas Quissamã</title>
-    <link rel="stylesheet" href="/static/style.css?v=1.1.8" />
+    <link rel="stylesheet" href="/static/style.css?v=1.2.1" />
     <script
       defer
       src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"
@@ -21,7 +21,7 @@
       href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300..800&display=swap"
       rel="stylesheet"
     />
-    <script defer src="/static/app.js?v=1.1.8"></script>
+    <script defer src="/static/app.js?v=1.2.1"></script>
   </head>
   <body class="initial-state">
     <button id="themeToggle" class="theme-toggle" title="Alternar tema">
@@ -55,9 +55,6 @@
         oficiais do Portal da Transparência de Quissamã.
       </p>
 
-      <!-- A: key metrics above search -->
-      <div id="hsMetrics" class="hs-metrics-topo"></div>
-
       <form id="formBusca" class="busca-wrapper">
         <div class="busca-container">
           <input
@@ -76,11 +73,19 @@
         </div>
         <div id="sugestoes"></div>
       </form>
+
+      <!-- A: key metrics below search -->
+      <div id="hsMetrics" class="hs-metrics-topo"></div>
       <div id="loading" class="hidden" style="margin-top: 20px;">
           <div class="spinner"></div>
       </div>
 
-        </p>
+      <!-- Scroll Down Indicator -->
+      <div id="scrollDownBtn" class="scroll-down-btn">
+        <span class="scroll-down-text">Role para ver dados gerais</span>
+        <svg class="scroll-down-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
       </div>
     </header>
 
