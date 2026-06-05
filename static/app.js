@@ -14,6 +14,7 @@ const COR = {
 };
 
 let chartValores, chartProcessos, chartProcessosModal;
+let chartPercentual, chartStatus;
 let _mensalidadesAtual = [];
 let chartProcessosView = "anual";
 let selectedIndex = -1;
@@ -49,17 +50,21 @@ function updateChartThemes() {
     Chart.defaults.borderColor = gridColor;
     Chart.defaults.font.family = "'Open Sans', sans-serif";
 
-    [chartValores, chartProcessos, chartProcessosModal].forEach(chart => {
-        if (chart) {
+    [chartValores, chartProcessos, chartProcessosModal,
+     chartPercentual, chartStatus].forEach(chart => {
+        if (!chart) return;
+        if (chart.options.scales?.x) {
             chart.options.scales.x.ticks.color = textColor;
-            chart.options.scales.y.ticks.color = textColor;
             chart.options.scales.x.grid.color = gridColor;
-            chart.options.scales.y.grid.color = gridColor;
-            if (chart.options.plugins.legend) {
-                chart.options.plugins.legend.labels.color = textColor;
-            }
-            chart.update();
         }
+        if (chart.options.scales?.y) {
+            chart.options.scales.y.ticks.color = textColor;
+            chart.options.scales.y.grid.color = gridColor;
+        }
+        if (chart.options.plugins?.legend) {
+            chart.options.plugins.legend.labels.color = textColor;
+        }
+        chart.update();
     });
 }
 
@@ -107,6 +112,114 @@ function dateKey(dateStr, view) {
   const p = dateStr.split("/");
   if (p.length !== 3) return null;
   return view === "anual" ? p[2] : `${p[2]}-${p[1]}`;
+}
+
+function fetchResumoGeral() {
+  fetch("/api/resumo-geral")
+    .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
+    .then(d => {
+      if (!d || typeof d.total_alunos !== "number") return Promise.reject("resposta sem dados — servidor desatualizado?");
+      renderHomeStats(d);
+    })
+    .catch(e => console.error("resumo-geral:", e));
+}
+
+function renderRankList(elId, items, rotuloDemais) {
+  const ul = document.getElementById(elId);
+  if (!ul) return;
+  const all = items || [];
+  const top = all.slice(0, 10);
+  const resto = all.slice(10);
+  const max = top.length ? Math.max(...top.map(i => i.empenhado)) : 0;
+  let html = top.map((i, idx) => {
+    const pct = max > 0 ? (i.empenhado / max * 100) : 0;
+    return `<li class="rank-item">
+      <div class="rank-top">
+        <span class="rank-name"><span class="rank-pos">${idx + 1}</span>${i.nome}</span>
+        <span class="rank-val">${brl(i.empenhado)}</span>
+      </div>
+      <div class="rank-bar"><div class="rank-bar-fill" style="width:${pct}%"></div></div>
+      <div class="rank-meta">${i.alunos} bolsista${i.alunos !== 1 ? "s" : ""} · ${brl(i.pago)} pagos</div>
+    </li>`;
+  }).join("");
+
+  if (resto.length) {
+    const emp = resto.reduce((s, i) => s + (i.empenhado || 0), 0);
+    const pago = resto.reduce((s, i) => s + (i.pago || 0), 0);
+    const alunos = resto.reduce((s, i) => s + (i.alunos || 0), 0);
+    html += `<li class="rank-item rank-resto">
+      <div class="rank-top">
+        <span class="rank-name">+${resto.length} ${rotuloDemais}</span>
+        <span class="rank-val">${brl(emp)}</span>
+      </div>
+      <div class="rank-meta">${alunos} bolsista${alunos !== 1 ? "s" : ""} · ${brl(pago)} pagos</div>
+    </li>`;
+  }
+  ul.innerHTML = html;
+}
+
+function renderHomeStats(d) {
+  const gc = getGridColor();
+
+  // A — pills acima da busca
+  const hsM = document.getElementById("hsMetrics");
+  if (hsM) {
+    const pct = d.total_empenhado > 0 ? Math.round(d.total_pago / d.total_empenhado * 100) : 0;
+    hsM.innerHTML =
+      `<span class="hs-pill">${d.total_alunos} bolsistas</span>` +
+      `<span class="hs-pill">${brl(d.total_empenhado)} investidos</span>` +
+      `<span class="hs-pill">${brl(d.total_pago)} pagos <b>(${pct}%)</b></span>` +
+      `<span class="hs-pill">${d.mensalidades_pagas}/${d.total_mensalidades} mensalidades</span>`;
+  }
+
+  // B — cards de resumo
+  const hsC = document.getElementById("hsCards");
+  if (hsC) {
+    hsC.innerHTML = [
+      { l: "Total empenhado",       v: brl(d.total_empenhado), color: "" },
+      { l: "Total pago",            v: brl(d.total_pago),       color: "var(--md-sys-color-success)" },
+      { l: "A receber",             v: brl(d.total_a_pagar),    color: "var(--md-sys-color-error)" },
+      { l: "Mensalidades pagas",    v: `${d.mensalidades_pagas} / ${d.total_mensalidades}`, color: "" },
+    ].map(s => `<div class="stat-card">
+      <div class="label">${s.l}</div>
+      <div class="value"${s.color ? ` style="color:${s.color}"` : ""}>${s.v}</div>
+    </div>`).join("");
+  }
+
+  // B — listas de ranking (instituições e cursos)
+  renderRankList("rankInstituicoes", d.por_instituicao, "outras instituições");
+  renderRankList("rankCursos", d.por_curso, "outros cursos");
+
+  // C — percentual de bolsa (doughnut)
+  const percs = Object.entries(d.por_percentual).sort(([a], [b]) => Number(b) - Number(a));
+  if (chartPercentual) chartPercentual.destroy();
+  chartPercentual = new Chart(document.getElementById("gPercentual"), {
+    type: "doughnut",
+    data: {
+      labels: percs.map(([k]) => `${k}%`),
+      datasets: [{ data: percs.map(([, v]) => v),
+        backgroundColor: [COR.chart1, COR.chart2, COR.chart3, COR.chart4], borderWidth: 0 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, cutout: "65%",
+      plugins: { legend: { display: true, position: "bottom" } } }
+  });
+
+  // C — status das mensalidades (doughnut)
+  const pagas = d.mensalidades_pagas;
+  const total = d.total_mensalidades;
+  if (chartStatus) chartStatus.destroy();
+  chartStatus = new Chart(document.getElementById("gStatus"), {
+    type: "doughnut",
+    data: {
+      labels: ["Pagas", "Pendentes"],
+      datasets: [{ data: [pagas, total - pagas],
+        backgroundColor: [COR.chart3, COR.chart4], borderWidth: 0 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, cutout: "65%",
+      plugins: { legend: { display: true, position: "bottom" } } }
+  });
+
+  updateChartThemes();
 }
 
 function buildProcessosData(mensalidades, view) {
@@ -389,7 +502,8 @@ function fetchNomes() {
 
 function init() {
   initTheme();
-  fetchNomes(); // pré-carrega em background
+  fetchNomes();
+  fetchResumoGeral();
   const input = document.getElementById("inputNome");
   const suggestionsCont = document.getElementById("sugestoes");
   const btnHome = document.getElementById("btnHome");

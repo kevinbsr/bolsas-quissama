@@ -171,14 +171,7 @@ main {
   transition: transform 1.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-body.initial-state {
-  height: 100vh;
-  overflow: hidden;
-}
-
-body.initial-state .topo {
-  transform: translateY(calc(50vh - 50%));
-}
+/* initial-state: page is now a full landing page, no centering needed */
 
 .theme-toggle {
   position: fixed;
@@ -488,12 +481,16 @@ body.initial-state .topo {
 .chart-card h3 {
   font-size: 1.1rem;
   font-weight: 700;
+  margin-bottom: 24px;
 }
 .chart-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
+}
+.chart-header h3 {
+  margin-bottom: 0;
 }
 .chart-toggle {
   display: flex;
@@ -761,8 +758,144 @@ body.data-visible .shortcuts-guide {
   color: var(--text);
 }
 
+/* ── Home Stats ──────────────────────────────────────────────────────── */
+
+/* A — pills acima da busca */
+.hs-metrics-topo {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  min-height: 28px;
+}
+body.data-visible .hs-metrics-topo { display: none; }
+.hs-pill {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.hs-pill b { color: var(--text); }
+
+/* B + C — home stats section */
+#homeStats {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+  padding-bottom: 40px;
+}
+body.data-visible #homeStats { display: none; }
+
+/* B — summary cards (reutiliza .stat-card — precisamos recolocar o CSS) */
+.hs-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.stat-card {
+  background-color: var(--surface);
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+}
+.stat-card .label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.stat-card .value {
+  font-size: clamp(0.95rem, 4.2vw, 1.25rem);
+  font-weight: 800;
+}
+
+/* B — ranking lists */
+.hs-rankings {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+.rank-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.rank-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rank-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.rank-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.rank-pos {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  width: 18px;
+}
+.rank-val {
+  font-size: 0.85rem;
+  font-weight: 800;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.rank-bar {
+  height: 6px;
+  background: var(--bg);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.rank-bar-fill {
+  height: 100%;
+  background: var(--brand);
+  border-radius: 4px;
+}
+.rank-meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+.rank-resto {
+  padding-top: 14px;
+  border-top: 1px dashed var(--border);
+}
+.rank-resto .rank-name {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+/* C — secondary charts grid */
+.hs-secondary {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
 /* ── Desktop Overrides (769px+) ──────────────────────────────────────── */
 @media (min-width: 769px) {
+  /* Home stats */
+  .hs-cards { grid-template-columns: repeat(4, 1fr); }
+  .hs-rankings { grid-template-columns: repeat(2, 1fr); }
+  .hs-secondary { grid-template-columns: repeat(2, 1fr); }
+
   /* Hero — 2-column layout */
   .hero-card {
     padding: 48px 40px;
@@ -803,9 +936,6 @@ body.data-visible .shortcuts-guide {
   .btn-search-icon { display: none; }
   .topo {
     padding: 64px 24px;
-  }
-  body.initial-state .topo {
-    transform: translateY(calc(50vh - 50%));
   }
   .theme-toggle {
     position: absolute;
@@ -878,6 +1008,7 @@ body.data-visible .shortcuts-guide {
 }
 
 /* Light Mode Overrides for Data View */
+[data-theme="light"] .stat-card,
 [data-theme="light"] body.data-visible .chart-card,
 [data-theme="light"] body.data-visible .transaction-item {
   background-color: #f8fafc !important;

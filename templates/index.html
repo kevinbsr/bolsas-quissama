@@ -10,7 +10,7 @@
     <meta name="theme-color" content="#0f172a" />
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
     <title>Dashboard · Bolsas Quissamã</title>
-    <link rel="stylesheet" href="/static/style.css?v=1.0.1" />
+    <link rel="stylesheet" href="/static/style.css?v=1.1.5" />
     <script
       defer
       src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"
@@ -21,7 +21,7 @@
       href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300..800&display=swap"
       rel="stylesheet"
     />
-    <script defer src="/static/app.js?v=1.0.1"></script>
+    <script defer src="/static/app.js?v=1.1.5"></script>
   </head>
   <body class="initial-state">
     <button id="themeToggle" class="theme-toggle" title="Alternar tema">
@@ -55,6 +55,9 @@
         oficiais do Portal da Transparência de Quissamã.
       </p>
 
+      <!-- A: key metrics above search -->
+      <div id="hsMetrics" class="hs-metrics-topo"></div>
+
       <form id="formBusca" class="busca-wrapper">
         <div class="busca-container">
           <input
@@ -82,6 +85,34 @@
     </header>
 
     <main class="wrap">
+      <!-- B + C: home stats — visible on landing page only -->
+      <section id="homeStats">
+        <!-- B: summary cards + ranking lists -->
+        <div class="hs-cards" id="hsCards"></div>
+        <div class="hs-rankings">
+          <div class="chart-card">
+            <h3>Investimento por instituição</h3>
+            <ul class="rank-list" id="rankInstituicoes"></ul>
+          </div>
+          <div class="chart-card">
+            <h3>Cursos que mais receberam</h3>
+            <ul class="rank-list" id="rankCursos"></ul>
+          </div>
+        </div>
+
+        <!-- C: secondary charts -->
+        <div class="hs-secondary">
+          <div class="chart-card">
+            <h3>Percentual de bolsa</h3>
+            <div class="chart-container" style="height:220px"><canvas id="gPercentual"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3>Status das mensalidades</h3>
+            <div class="chart-container" style="height:220px"><canvas id="gStatus"></canvas></div>
+          </div>
+        </div>
+      </section>
+
       <section id="estado" class="estado"></section>
 
       <div id="resultado" class="hidden">

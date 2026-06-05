@@ -12,7 +12,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from .bolsa_store import buscar, invalidar_cache, listar_nomes, pre_carregar, sugerir
+from .bolsa_store import buscar, invalidar_cache, listar_nomes, pre_carregar, resumo_geral, sugerir
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -56,6 +56,11 @@ def api_recarregar(secret: str = Query(default="")):
         raise HTTPException(403, "Acesso negado")
     invalidar_cache()
     return {"ok": True}
+
+
+@app.get("/api/resumo-geral")
+def api_resumo_geral():
+    return resumo_geral()
 
 
 @app.get("/api/saude")
