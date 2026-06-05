@@ -810,21 +810,19 @@ body.initial-state .shortcuts-guide {
 
 /* Shortcuts */
 .shortcuts-guide {
-  position: fixed;
-  bottom: 32px;
-  left: 32px;
+  position: fixed !important;
+  bottom: 32px !important;
+  left: 32px !important;
   display: none;
   flex-direction: column;
   gap: 12px;
   z-index: 1000;
-  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-  transform: translateY(0);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   opacity: 1;
   visibility: visible;
 }
 
 body.data-visible .shortcuts-guide {
-  transform: translateY(40px);
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -1101,7 +1099,6 @@ body.data-visible #homeStats { display: none; }
   }
   body.data-visible .shortcuts-guide {
     display: flex !important;
-    transform: translateY(40px);
     opacity: 0;
     visibility: hidden;
   }
