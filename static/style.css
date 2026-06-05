@@ -268,11 +268,22 @@ body.initial-state .theme-toggle {
   right: 16px;
 }
 
+body.initial-state .shortcuts-guide {
+  position: fixed !important;
+  bottom: 32px !important;
+  left: 32px !important;
+}
+
 @media (min-width: 768px) {
   body.initial-state .theme-toggle {
     position: fixed !important;
     top: 12px;
     right: 24px;
+  }
+  body.initial-state .shortcuts-guide {
+    position: fixed !important;
+    bottom: 32px !important;
+    left: 32px !important;
   }
 }
 
@@ -1076,6 +1087,7 @@ body.data-visible #homeStats { display: none; }
     font-size: 1.2rem;
   }
   .shortcuts-guide {
+    position: fixed !important;
     display: flex;
   }
   #estado {
