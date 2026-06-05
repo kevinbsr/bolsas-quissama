@@ -44,18 +44,38 @@ uvicorn app.main:app --reload            # http://127.0.0.1:8000
 
 ## Atualizando os dados (pipeline offline)
 
-O scraping exige um navegador real (Playwright + Chromium do sistema), então roda
-**fora** do app — localmente ou num cron na Oracle Always Free (VM de verdade;
-o tier grátis do Render não roda navegador).
+O scraping exige um navegador real (Playwright + Chromium do sistema), então roda **fora** do app de produção (o tier grátis do Render não suporta navegadores headless complexos). 
+
+A arquitetura de atualização consiste em rodar o pipeline offline em um **home server** (ou máquina local) e enviar as atualizações automaticamente para o GitHub, o que dispara o deploy automático no Render.
+
+### Automação Diária (Recomendado)
+
+Criamos o script `scripts/atualizar_dados.py` para fazer todo o processo de uma vez:
+1. Acessa o Portal da Transparência de Quissamã e faz o download do CSV de Movimentação Diária mais recente para o ano corrente.
+2. Executa o parser/scraper (`coletar_bolsas.py`) para atualizar `app/dados/bolsas_publicas.json` e cachear novos empenhos em `data/cache/detalhe/`.
+3. Se houver novas informações ou atualizações nos pagamentos, faz o commit e o push automático para o GitHub.
+
+Para configurar no cron do seu home server para rodar diariamente às **06:00**:
 
 ```bash
-pip install -r requirements-coleta.txt   # pandas, playwright, pypdf
+# Instale as dependências na máquina/cron local
+pip install -r requirements-coleta.txt
+playwright install chromium
+
+# Edite o crontab (crontab -e)
+0 6 * * * cd /caminho/para/bolsas-quissama && /caminho/para/.venv/bin/python scripts/atualizar_dados.py >> /var/log/bolsas_update.log 2>&1
+```
+
+### Execução Manual do Scraper
+
+Se preferir rodar apenas o scraper/parser manualmente sem fazer download do CSV ou commit/push:
+
+```bash
 python scripts/coletar_bolsas.py         # reconstrói app/dados/bolsas_publicas.json
 # --limite N  → processa só os N primeiros alunos (validação)
 ```
 
-Os detalhes são cacheados em `data/cache/detalhe/`, então reexecuções só buscam o
-que falta. Depois, faça commit do `bolsas_publicas.json` atualizado.
+Os detalhes continuam cacheados em `data/cache/detalhe/` offline, garantindo que execuções futuras sejam incrementais e muito rápidas.
 
 ---
 
