@@ -132,6 +132,8 @@ def _agg(sub: pd.DataFrame) -> list[dict]:
     regs = []
     for d in sorted(agg.values(), key=lambda x: (x["ano"], x["empenho"]), reverse=True):
         d["pago"] = round(d["pago"], 2)
+        # Deduz o valor anulado do empenhado para obter o valor líquido real
+        d["empenhado"] = round(max(d["empenhado"] - d["anulado"], 0.0), 2)
         d["a_pagar"] = round(max(d["liquidado"] - d["pago"], 0.0), 2)
         # Fallback para data_movimento para compatibilidade
         d["data_movimento"] = d["data_empenho"] or d["data_liquidacao"] or d["data_pagamento"]

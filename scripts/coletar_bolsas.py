@@ -195,9 +195,34 @@ def parse_detalhe(txt: str) -> dict:
         return m.group(1).strip() if m else ""
     funcao = capn(r"FUNCAO:\s*\d*\s*-?\s*([^\t\n]+)")
     acao = capn(r"ACAO DE GOVERNO:\s*\d*\s*-?\s*([^\t\n]+)")
-    # descrição (texto original, com acentos): a linha do item antes das colunas de valor
-    md = re.search(r"Descri[çc][ãa]o do Empenho.*?Total\s*\n(.+?)\t", txt, re.DOTALL | re.IGNORECASE)
-    desc = md.group(1).strip() if md else ""
+    # descrição (texto original, com acentos): captura todos os itens da tabela até os Totais
+    md = re.search(r"Descri[çc][ãa]o do Empenho.*?Total\s*\n(.+?)\nTotais", txt, re.DOTALL | re.IGNORECASE)
+    if md:
+        lines = md.group(1).strip().split("\n")
+        descriptions = []
+        for line in lines:
+            parts = line.split("\t")
+            if parts:
+                desc_text = parts[0].strip()
+                if desc_text:
+                    descriptions.append(desc_text)
+        desc = " | ".join(descriptions)
+    else:
+        # fallback caso a tabela tenha formato diferente
+        md_fallback = re.search(r"Descri[çc][ãa]o do Empenho.*?Total\s*\n(.+?)\t", txt, re.DOTALL | re.IGNORECASE)
+        desc = md_fallback.group(1).strip() if md_fallback else ""
+
+    meses = extrair_meses(txt)
+    # Se a descrição for genérica ("RESTOS A PAGAR"), tenta extrair do histórico de pagamentos/liquidações
+    if desc.upper() == "RESTOS A PAGAR":
+        historia = []
+        for m_hist in re.finditer(r"(?:VALOR REF\.|PAGTO\.|LIQUIDACAO)[^\t\n]+", txt, re.IGNORECASE):
+            h_txt = m_hist.group(0).strip()
+            if h_txt and h_txt not in historia:
+                historia.append(h_txt)
+        if historia:
+            desc = " | ".join(historia)
+
     meses = extrair_meses(txt)
     mes = meses[0] if len(meses) == 1 else ""
     tipo, parcela = _classificar(norm, len(meses))
@@ -216,6 +241,14 @@ def _classificar(norm: str, n_meses: int) -> tuple[str, str | None]:
     if is_acordo:
         if re.search(r"PARCELA\s+UNICA", norm):
             return "acordo", "única"
+        # "Xª A Yª PARCELAS" ou "Xª E Yª PARCELAS"
+        mr = re.search(r"(\d+)\s*[ºaA]?\s*(?:A|E|-)\s*(\d+)\s*[ºaA]?\s*PARCELAS?", norm)
+        if mr:
+            return "acordo", f"{mr.group(1)} a {mr.group(2)}"
+        # "Xª, Yª E Zª PARCELAS"
+        mr3 = re.search(r"(\d+)\s*[ºaA]?\s*,\s*(?:\d+\s*[ºaA]?\s*,\s*)*\d+\s*[ºaA]?\s*E\s*(\d+)\s*[ºaA]?\s*PARCELAS?", norm)
+        if mr3:
+            return "acordo", f"{mr3.group(1)} a {mr3.group(2)}"
         # "NNª PARCELA" / "NNa PARCELA" (ª → a após normalização ASCII) / "NN PARCELA"
         m = re.search(r"(\d+)\s*[ºaA]?\s*PARCELA", norm)
         if m:
@@ -236,7 +269,20 @@ def eh_bolsa(det: dict) -> bool:
     # Função sempre Educação; "bolsa de estudo" pode estar na Ação (Superior) ou só
     # na descrição (Especialização usa a Ação "Capacitação e Qualificação").
     blob = (det["acao"] + " " + (det.get("descricao") or "")).lower()
-    return "educa" in det["funcao"].lower() and "bolsa" in blob and "estudo" in blob
+    if "educa" in det["funcao"].lower() and "bolsa" in blob and "estudo" in blob:
+        return True
+        
+    # Se for Restos a Pagar (função/ação vazias), valida pelo texto bruto (raw)
+    raw_lower = det.get("raw", "").lower()
+    if "educa" in raw_lower and "bolsa" in raw_lower and "estudo" in raw_lower:
+        return True
+        
+    # Fallback para Restos a Pagar sem histórico detalhado: aceita se for "restos" e pertencer à Educação,
+    # pois o credor já é um aluno filtrado pelo roster oficial
+    if "restos" in det.get("descricao", "").lower() and "educa" in raw_lower:
+        return True
+        
+    return False
 
 
 def detalhe_cacheado(pg, numero: str, ano: str, url: str) -> dict:
@@ -316,6 +362,9 @@ def coletar_aluno(pg, a: dict) -> dict:
             if not eh_bolsa(det):
                 continue
             reg = por_empenho.get(numero, {})
+            # Ignora empenhos que foram totalmente anulados/cancelados (tudo zerado)
+            if reg.get("empenhado", 0.0) <= 0.0 and reg.get("liquidado", 0.0) <= 0.0 and reg.get("pago", 0.0) <= 0.0:
+                continue
             mensalidades.append({
                 "empenho": numero,
                 "ano": ano,
@@ -388,33 +437,84 @@ def coletar(limite: int | None = None, alvos: list[str] | None = None, forcar: b
 
 
 def reparsear() -> None:
-    """Reaplica o parser atual aos detalhes já em cache (campo `raw`) e atualiza o
-    dataset — sem rede. Use depois de melhorar parse_detalhe."""
+    """Reaplica o parser atual aos detalhes já em cache (campo `raw`), deduz anulações
+    e atualiza o dataset — sem rede. Use depois de melhorar parse_detalhe."""
     por_nome = _carregar_existente()
     fixados = 0
-    for a in por_nome.values():
-        for m in a["mensalidades"]:
-            cf = CACHE / f"{m['ano']}-{m['empenho']}.json"
+    from app.csv_loader import buscar as csv_buscar
+    for nome, a in list(por_nome.items()):
+        # Obtém os registros oficiais do CSV para poder filtrar os anulados e incluir novos
+        base = csv_buscar(nome)
+        por_empenho = {r["empenho"].lstrip("0") or "0": r for r in base["registros"]}
+        
+        novas_mensalidades = []
+        for numero, reg in por_empenho.items():
+            cf = CACHE / f"{reg['ano']}-{numero}.json"
             if not cf.exists():
                 continue
             det = json.loads(cf.read_text(encoding="utf-8"))
-            if not det.get("raw"):  # cache antigo: deriva do que já temos
-                if m.get("mes_referencia") and not m.get("meses"):
-                    m["meses"] = [m["mes_referencia"]]
-                # sempre reclassifica (garante que correções no _classificar sejam aplicadas)
-                desc_norm = unicodedata.normalize("NFKD", m.get("descricao") or "").encode("ascii", "ignore").decode().upper()
-                m["tipo"], m["parcela"] = _classificar(desc_norm, len(m.get("meses") or []))
+            if not eh_bolsa(det):
                 continue
-            novo = parse_detalhe(det["raw"])
-            if novo.get("meses") != m.get("meses"):
+            
+            if det.get("raw"):
+                novo = parse_detalhe(det["raw"])
+            else:
+                novo = {
+                    "funcao": det.get("funcao", ""),
+                    "acao": det.get("acao", ""),
+                    "descricao": det.get("descricao", ""),
+                    "mes_referencia": det.get("mes_referencia", ""),
+                    "meses": det.get("meses", [det.get("mes_referencia", "")]),
+                    "tipo": det.get("tipo", "mensalidade"),
+                    "parcela": det.get("parcela")
+                }
+            
+            m_empenhado = reg.get("empenhado", 0.0)
+            m_liquidado = reg.get("liquidado", 0.0)
+            m_pago = reg.get("pago", 0.0)
+            m_a_pagar = reg.get("a_pagar", 0.0)
+            
+            # Filtra se o empenho foi totalmente anulado (tudo zerado)
+            if m_empenhado <= 0.0 and m_liquidado <= 0.0 and m_pago <= 0.0:
+                continue
+                
+            # Verifica se houve correção de meses
+            # Encontra se já existia na lista para poder contar fixados
+            m_antigo = next((m for m in a.get("mensalidades", []) if m["empenho"] == numero), None)
+            if m_antigo and novo.get("meses") != m_antigo.get("meses"):
                 fixados += 1
-            m["mes_referencia"] = novo["mes_referencia"]
-            m["meses"] = novo["meses"]
-            m["tipo"] = novo["tipo"]
-            m["parcela"] = novo["parcela"]
-            m["descricao"] = novo["descricao"]
-            cf.write_text(json.dumps(novo, ensure_ascii=False), encoding="utf-8")
+                
+            novas_mensalidades.append({
+                "empenho": numero,
+                "ano": reg["ano"],
+                "mes_referencia": novo["mes_referencia"],
+                "meses": novo.get("meses", []),
+                "tipo": novo.get("tipo", "mensalidade"),
+                "parcela": novo.get("parcela"),
+                "empenhado": m_empenhado,
+                "liquidado": m_liquidado,
+                "pago": m_pago,
+                "a_pagar": m_a_pagar,
+                "data_empenho": reg.get("data_empenho"),
+                "data_liquidacao": reg.get("data_liquidacao"),
+                "data_pagamento": reg.get("data_pagamento"),
+                "descricao": novo["descricao"]
+            })
+            
+            if det.get("raw"):
+                cf.write_text(json.dumps(novo, ensure_ascii=False), encoding="utf-8")
+            
+        a["mensalidades"] = novas_mensalidades
         ordenar_mensalidades(a["mensalidades"])
+        
+        # Atualiza o resumo financeiro do aluno
+        a["resumo"] = {
+            "qtd": len(a["mensalidades"]),
+            "empenhado": round(sum(m["empenhado"] for m in a["mensalidades"]), 2),
+            "liquidado": round(sum(m["liquidado"] for m in a["mensalidades"]), 2),
+            "pago": round(sum(m["pago"] for m in a["mensalidades"]), 2),
+            "a_pagar": round(sum(m["a_pagar"] for m in a["mensalidades"]), 2),
+        }
     _salvar(por_nome)
     print(f"Reparse: {fixados} meses recuperados em {len(por_nome)} alunos")
 

@@ -87,7 +87,7 @@ function mensalidadeLabel(x) {
   const tipo = x.tipo || "mensalidade";
   if (tipo === "acordo") {
     const p = x.parcela;
-    const suf = p === "única" ? "— parcela única" : p ? `— ${p}ª parcela` : "";
+    const suf = p === "única" ? "— parcela única" : p ? (p.includes(" a ") ? `— parcelas ${p}` : `— ${p}ª parcela`) : "";
     return periodo ? `Acordo ${suf} · ${periodo}` : `Acordo ${suf}`.trim();
   }
   if (tipo === "conjunto") return periodo ? `Pagamento conjunto · ${periodo}` : "Pagamento conjunto";
@@ -190,7 +190,13 @@ function render(d) {
         </div>
       </div>`;
   });
-  document.getElementById("comoConferir").innerHTML = `Fonte Oficial: <a href="${d.url}" target="_blank" style="color: var(--brand)">${d.fonte}</a>`;
+  document.getElementById("comoConferir").innerHTML = `
+    Fonte Oficial: <a href="${d.url}" target="_blank" style="color: var(--brand)">${d.fonte}</a><br>
+    <span style="display: inline-block; margin-top: 8px; opacity: 0.85;">
+      Histórico limitado a partir de 2022 (restrição do portal municipal).
+      Para dados anteriores, solicite à prefeitura via e-SIC ou Ouvidoria.
+    </span>
+  `;
   window._nomeAtual = d.nome;
 }
 
