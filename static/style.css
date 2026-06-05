@@ -115,6 +115,19 @@ html {
   overflow-x: hidden;
 }
 
+/* Acessibilidade/SEO: conteúdo só para leitores de tela e indexação */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 body {
   font-family: "Open Sans", sans-serif;
   background-color: var(--bg);
@@ -551,7 +564,7 @@ body.initial-state .scroll-down-btn {
   border-radius: var(--radius);
   border: 1px solid var(--border);
 }
-.chart-card h3 {
+.chart-card h2 {
   font-size: 1.1rem;
   font-weight: 700;
   margin-bottom: 24px;
@@ -562,7 +575,7 @@ body.initial-state .scroll-down-btn {
   justify-content: space-between;
   margin-bottom: 24px;
 }
-.chart-header h3 {
+.chart-header h2 {
   margin-bottom: 0;
 }
 .chart-toggle {
@@ -646,7 +659,7 @@ body.initial-state .scroll-down-btn {
   flex-direction: column;
   gap: 16px;
 }
-.data-header h3 {
+.data-header h2 {
   font-size: 1.1rem;
   font-weight: 700;
 }
@@ -1132,7 +1145,7 @@ body.data-visible #homeStats { display: none; }
   }
 }
 
-.rodape-logo h3 {
+.rodape-logo h2 {
   font-size: 1.25rem;
   font-weight: 800;
   color: var(--text);
@@ -1140,7 +1153,7 @@ body.data-visible #homeStats { display: none; }
   letter-spacing: -0.02em;
 }
 
-.rodape-logo h3 span {
+.rodape-logo h2 span {
   color: var(--brand);
 }
 

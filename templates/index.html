@@ -3,14 +3,39 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Bolsas de Estudo de Quissamã · Transparência e Consulta</title>
     <meta
       name="description"
-      content="Portal público de transparência para consulta, análise e acompanhamento de bolsas de estudo de Quissamã/RJ."
+      content="Consulte e acompanhe as bolsas de estudo de ensino superior e especialização do município de Quissamã/RJ: valores empenhados, pagos e a receber por bolsista, curso e instituição."
     />
+    <link rel="canonical" href="https://bolsasquissama.com.br/" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
     <meta name="theme-color" content="#0f172a" />
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
-    <title>Portal de Transparência · Bolsas Quissamã</title>
-    <link rel="stylesheet" href="/static/style.css?v=1.3.8" />
+
+    <!-- Open Graph (compartilhamento em WhatsApp, redes sociais) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Bolsas Quissamã" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:title" content="Bolsas de Estudo de Quissamã · Transparência e Consulta" />
+    <meta property="og:description" content="Consulte valores empenhados, pagos e a receber das bolsas de estudo de ensino superior e especialização de Quissamã/RJ." />
+    <meta property="og:url" content="https://bolsasquissama.com.br/" />
+    <meta property="og:image" content="https://bolsasquissama.com.br/static/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Bolsas Quissamã — transparência das bolsas de estudo" />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Bolsas de Estudo de Quissamã · Transparência e Consulta" />
+    <meta name="twitter:description" content="Consulte valores empenhados, pagos e a receber das bolsas de estudo de Quissamã/RJ." />
+    <meta name="twitter:image" content="https://bolsasquissama.com.br/static/og-image.png" />
+
+    <!-- Dados estruturados (schema.org) — injetados pelo servidor -->
+    <script type="application/ld+json">__SSR_JSONLD__</script>
+
+    <link rel="stylesheet" href="/static/style.css?v=1.4.0" />
     <script
       defer
       src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"
@@ -21,7 +46,7 @@
       href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300..800&display=swap"
       rel="stylesheet"
     />
-    <script defer src="/static/app.js?v=1.2.4"></script>
+    <script defer src="/static/app.js?v=1.2.5"></script>
   </head>
   <body class="initial-state">
     <button id="themeToggle" class="theme-toggle" title="Alternar tema">
@@ -89,8 +114,8 @@
         <div id="sugestoes"></div>
       </form>
 
-      <!-- A: key metrics below search -->
-      <div id="hsMetrics" class="hs-metrics-topo"></div>
+      <!-- A: key metrics below search (SSR p/ indexação; o JS re-renderiza igual) -->
+      <div id="hsMetrics" class="hs-metrics-topo">__SSR_PILLS__</div>
       <div id="loading" class="hidden" style="margin-top: 20px">
         <div class="spinner"></div>
       </div>
@@ -117,29 +142,30 @@
     <main class="wrap">
       <!-- B + C: home stats — visible on landing page only -->
       <section id="homeStats">
-        <!-- B: summary cards + ranking lists -->
-        <div class="hs-cards" id="hsCards"></div>
+        <h2 class="sr-only">Panorama das bolsas de estudo em Quissamã</h2>
+        <!-- B: summary cards + ranking lists (SSR p/ indexação; o JS re-renderiza igual) -->
+        <div class="hs-cards" id="hsCards">__SSR_CARDS__</div>
         <div class="hs-rankings">
           <div class="chart-card">
-            <h3>Investimento por instituição</h3>
-            <ul class="rank-list" id="rankInstituicoes"></ul>
+            <h2>Investimento por instituição</h2>
+            <ul class="rank-list" id="rankInstituicoes">__SSR_INST__</ul>
           </div>
           <div class="chart-card">
-            <h3>Cursos que mais receberam</h3>
-            <ul class="rank-list" id="rankCursos"></ul>
+            <h2>Cursos que mais receberam</h2>
+            <ul class="rank-list" id="rankCursos">__SSR_CURSOS__</ul>
           </div>
         </div>
 
         <!-- C: secondary charts -->
         <div class="hs-secondary">
           <div class="chart-card">
-            <h3>Percentual de bolsa</h3>
+            <h2>Percentual de bolsa</h2>
             <div class="chart-container" style="height: 220px">
               <canvas id="gPercentual"></canvas>
             </div>
           </div>
           <div class="chart-card">
-            <h3>Status das mensalidades</h3>
+            <h2>Status das mensalidades</h2>
             <div class="chart-container" style="height: 220px">
               <canvas id="gStatus"></canvas>
             </div>
@@ -156,12 +182,12 @@
         <!-- Charts Area -->
         <div class="viz-section">
           <div class="chart-card">
-            <h3>Fluxo Financeiro</h3>
+            <h2>Fluxo Financeiro</h2>
             <div class="chart-container"><canvas id="gValores"></canvas></div>
           </div>
           <div class="chart-card">
             <div class="chart-header">
-              <h3>Processos</h3>
+              <h2>Processos</h2>
               <div style="display: flex; align-items: center; gap: 8px">
                 <div class="chart-toggle">
                   <button class="ct-btn" data-view="mensal">Mensal</button>
@@ -197,7 +223,7 @@
         <!-- Transactions -->
         <section class="data-card">
           <div class="data-header">
-            <h3>Mensalidades da bolsa</h3>
+            <h2>Mensalidades da bolsa</h2>
             <div class="data-legend">
               <div class="data-legend-item">
                 <b
@@ -327,7 +353,7 @@
     <footer class="rodape no-print">
       <div class="rodape-content wrap">
         <div class="rodape-logo">
-          <h3>Bolsas <span>Quissamã</span></h3>
+          <h2>Bolsas <span>Quissamã</span></h2>
           <p>Portal independente de transparência pública e controle social.</p>
         </div>
         <div class="rodape-links">
@@ -431,7 +457,7 @@
     <div id="chartModal" class="chart-modal hidden">
       <div class="chart-modal-card">
         <div class="chart-header">
-          <h3>Processos</h3>
+          <h2>Processos</h2>
           <div style="display: flex; align-items: center; gap: 8px">
             <div class="chart-toggle">
               <button class="ct-btn ct-modal-btn" data-view="mensal">
