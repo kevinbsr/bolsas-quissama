@@ -276,12 +276,10 @@ def eh_bolsa(det: dict) -> bool:
     raw_lower = det.get("raw", "").lower()
     if "educa" in raw_lower and "bolsa" in raw_lower and "estudo" in raw_lower:
         return True
-        
-    # Fallback para Restos a Pagar sem histórico detalhado: aceita se for "restos" e pertencer à Educação,
-    # pois o credor já é um aluno filtrado pelo roster oficial
-    if "restos" in det.get("descricao", "").lower() and "educa" in raw_lower:
-        return True
-        
+
+    # NÃO há fallback genérico para "Restos a Pagar": empenhos cuja descrição/raw não
+    # comprovam "bolsa de estudo" (ex.: item literal "RESTOS A PAGAR", de 2021/2022,
+    # liquidados e nunca pagos) ficam de fora — não dá para afirmar que são bolsa.
     return False
 
 
