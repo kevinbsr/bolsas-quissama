@@ -239,7 +239,7 @@ body.initial-state .scroll-down-btn {
 }
 
 .theme-toggle {
-  position: absolute;
+  position: fixed;
   top: 16px;
   right: 16px;
   bottom: auto;
@@ -254,37 +254,10 @@ body.initial-state .scroll-down-btn {
   justify-content: center;
   color: var(--text);
   z-index: 100;
-}
-.theme-toggle {
   transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 .theme-toggle svg {
   transition: transform 0.5s ease;
-}
-
-body.initial-state .theme-toggle {
-  position: fixed !important;
-  top: 16px;
-  right: 16px;
-}
-
-body.initial-state .shortcuts-guide {
-  position: fixed !important;
-  bottom: 32px !important;
-  left: 32px !important;
-}
-
-@media (min-width: 768px) {
-  body.initial-state .theme-toggle {
-    position: fixed !important;
-    top: 12px;
-    right: 24px;
-  }
-  body.initial-state .shortcuts-guide {
-    position: fixed !important;
-    bottom: 32px !important;
-    left: 32px !important;
-  }
 }
 
 @media (max-width: 768px) {
@@ -1035,7 +1008,7 @@ body.data-visible #homeStats { display: none; }
     padding: 64px 24px;
   }
   .theme-toggle {
-    position: absolute;
+    position: fixed;
     top: 12px;
     right: 24px;
     bottom: auto;
