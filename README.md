@@ -4,7 +4,7 @@ Portal público para os **alunos bolsistas** de Quissamã/RJ acompanharem, mês 
 mês, o pagamento da sua bolsa de estudos — com dados oficiais do Portal da
 Transparência da prefeitura.
 
-**Demo:** https://bolsas-quissama.onrender.com
+**Site Oficial:** https://bolsasquissama.com.br
 
 > Cobertura: bolsistas do **Ensino Superior** e **Especialização** (que são
 > reembolsados individualmente e, por isso, têm empenho no nome do aluno). O
@@ -38,6 +38,7 @@ movimentacao-diaria/*.csv  ──┘        (Playwright + portal)            (da
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt          # só fastapi + uvicorn
+export BQ_ENV=dev                        # Desabilita o cache no navegador para desenvolvimento local
 uvicorn app.main:app --reload            # http://127.0.0.1:8000
 ```
 
@@ -87,3 +88,13 @@ fora do versionamento (`.gitignore`).
 `render.yaml` (Render) já configurado — deploy automático a cada push na `master`.
 O app serve o dataset estático; para atualizar, rode o pipeline offline e faça commit
 do JSON.
+
+---
+
+## Otimizações de SEO & Meta-tags
+
+O portal foi projetado para conformidade com boas práticas de SEO e compartilhamento social:
+*   **SSR (Server-Side Rendering)**: Rankings e métricas gerais são renderizados em Python no backend e inseridos diretamente no HTML inicial para completa indexação por robôs de busca.
+*   **Metadados Sociais**: Suporte completo a tags Open Graph (Facebook/WhatsApp) e Twitter Cards, referenciando a imagem social oficial do portal (`static/og-image.png`).
+*   **Dados Estruturados**: Injeção automática de JSON-LD (`WebSite` e `Dataset`) especificando o escopo espacial, temporal e licença de uso dos dados de transparência pública.
+*   **Robots & Sitemap**: Rotas dinâmicas em `/robots.txt` e `/sitemap.xml` para controlar o crawling de buscadores, mantendo as páginas individuais protegidas (bloqueadas para rastreamento) conforme regras de privacidade, e apenas a página inicial ativa para indexação.
