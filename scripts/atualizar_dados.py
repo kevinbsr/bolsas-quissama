@@ -50,6 +50,18 @@ def download_csv(ano: str, saida: Path) -> None:
             with pg.expect_download(timeout=180000) as dl_info:
                 pg.click("#btExportarCSV")
             dl_info.value.save_as(str(saida))
+            
+            # Limpa o rodapé dinâmico do PRONIM (com timestamp) para evitar commits falsos
+            try:
+                conteudo = saida.read_text(encoding="latin-1")
+                linhas = conteudo.splitlines()
+                if linhas and "PRONIM" in linhas[-1]:
+                    linhas.pop()
+                    saida.write_text("\n".join(linhas) + "\n", encoding="latin-1")
+                    print("[*] Rodapé dinâmico do PRONIM removido para evitar commits espúrios.")
+            except Exception as e:
+                print(f"[!] Aviso ao limpar o rodapé do CSV: {e}")
+
             tamanho = saida.stat().st_size
             print(f"[+] Download concluído com sucesso: {saida} ({tamanho:,} bytes)")
         except Exception as e:
