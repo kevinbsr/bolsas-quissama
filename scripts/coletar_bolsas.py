@@ -441,7 +441,11 @@ def coletar(limite: int | None = None, alvos: list[str] | None = None, forcar: b
     por_nome = _carregar_existente()
     print(f"Dataset existente: {len(por_nome)} alunos (merge incremental)")
     with sync_playwright() as pw:
-        b = pw.chromium.launch(executable_path=CHROMIUM, headless=True, args=["--no-sandbox"])
+        try:
+            b = pw.chromium.launch(executable_path=CHROMIUM, headless=True, args=["--no-sandbox"])
+        except Exception:
+            print(f"[!] Aviso: Não foi possível iniciar o Chromium em '{CHROMIUM}'. Tentando padrão do Playwright...")
+            b = pw.chromium.launch(headless=True, args=["--no-sandbox"])
         pg = b.new_page()
         for a in alunos:
             nome = a["nome_canonico"]
