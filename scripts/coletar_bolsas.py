@@ -72,6 +72,28 @@ def ordenar_mensalidades(mens: list[dict]) -> list[dict]:
 
 def carregar_roster() -> list[dict]:
     alunos = []
+    if not ROSTER.exists():
+        if SAIDA.exists():
+            print(f"[!] Aviso: Roster '{ROSTER.name}' não encontrado. Tentando carregar alunos a partir do dataset existente '{SAIDA.name}'...")
+            try:
+                d = json.loads(SAIDA.read_text(encoding="utf-8"))
+                for a in d.get("alunos", []):
+                    alunos.append({
+                        "nome_roster": a["nome"],
+                        "nivel": a.get("nivel") or "",
+                        "curso": a.get("curso") or "",
+                        "instituicao": a.get("instituicao") or "",
+                        "percentual": a.get("percentual") or "",
+                        "valor_mensal": a.get("valor_mensal") or "",
+                    })
+                print(f"[+] {len(alunos)} alunos carregados a partir do dataset de fallback '{SAIDA.name}'.")
+                return alunos
+            except Exception as e:
+                print(f"[!] Erro ao ler dataset existente para fallback: {e}")
+        raise FileNotFoundError(
+            f"Arquivo de roster '{ROSTER.name}' não encontrado em '{ROSTER}' e nenhuma fonte de fallback foi encontrada."
+        )
+
     with open(ROSTER, encoding="utf-8") as f:
         for row in csv.DictReader(f):
             nivel = (row.get("Nível") or "").strip()
@@ -89,6 +111,7 @@ def carregar_roster() -> list[dict]:
                 "valor_mensal": (row.get("Valor") or "").strip(),
             })
     return alunos
+
 
 
 def mapear_canonico(alunos: list[dict]) -> None:
