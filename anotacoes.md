@@ -1,88 +1,96 @@
-# Anotações e Gerenciamento do Sistema
+# Anotações, Infraestrutura e Gerenciamento do Sistema
 
-Este manual reúne as instruções de operação, infraestrutura e fluxo de atualização do pipeline de dados do Portal de Bolsas Quissamã.
+Este documento serve como manual operacional e documentação oficial da arquitetura do projeto **Bolsas Quissamã**, integrando as especificações declarativas de infraestrutura, detalhes de segurança e o pipeline automatizado de dados no servidor local.
 
 ---
 
-## 1. Atualização da Lista de Alunos (Roster)
+## 1. Camada de Infraestrutura como Código (IaC)
 
-O arquivo `relacao-bolsistas_padronizado.csv` (roster) contém a lista de alunos de Ensino Superior e Especialização que possuem o benefício de reembolso.
+A infraestrutura do contêiner de coleta é definida de forma declarativa via **Terraform** no diretório [infra/](file:///home/kevin/Work/personal/bolsas-quissama/infra/) usando o provider `bpg/proxmox`.
 
-### Privacidade de Dados
+*   **Host Físico:** Proxmox VE local (host: `ragnar`, datastore: `local` / `local-lvm`).
+*   **Template de Sistema:** Download automatizado do template oficial do **Debian 12 Standard** (`.tar.zst`).
+*   **Recurso de Contêiner (`proxmox_virtual_environment_container`):**
+    *   **VM ID:** `102` (hostname: `scraper-bolsas`).
+    *   **Segurança:** Configurado como **`unprivileged = true`** (isolando o root do container do root do host físico).
+    *   **Recursos:** 1 Core de CPU, 1 GB de Memória RAM (0 swap), 8 GB de armazenamento alocado.
+    *   **Rede:** Interface `veth0` atrelada à bridge padrão `vmbr0`, com IP obtido dinamicamente via DHCP.
+    *   **Acesso:** Injeção automática da chave pública SSH em tempo de provisionamento, sem senhas.
+
+---
+
+## 2. Configuração do Ambiente e Dependências (LXC)
+
+O ecossistema interno do contêiner Debian 12 foi configurado para suportar o scraper headless:
+
+1.  **Ambiente Virtual Python (Venv):** Inicializado em `/app/bolsas-quissama/` para isolamento de pacotes e dependências (Pandas, Playwright).
+2.  **Playwright Headless:** Instalado com dependências de sistema nativas do Linux para renderização em background sem interface gráfica ativa:
+    ```bash
+    pip install -r requirements-coleta.txt
+    playwright install --with-deps chromium
+    ```
+3.  **Segurança de Comunicação (Deploy Key):** Geramos uma chave SSH dedicada (`id_ed25519`) dentro do container e a vinculamos como **Deploy Key** (com permissão de escrita) no repositório do GitHub. Isso restringe o acesso em caso de comprometimento da máquina.
+4.  **Git Config:** A identidade de commit do Git no servidor está configurada como:
+    ```bash
+    git config --global user.email "kb.kevinbenevides@gmail.com"
+    git config --global user.name "Kevin Benevides"
+    ```
+
+---
+
+## 3. Pipeline de Dados e Lista de Alunos (Roster)
+
+```
+relacao-bolsistas (roster)  ─┐
+                             ├─►  scripts/coletar_bolsas.py  ─►  app/dados/bolsas_publicas.json
+movimentacao-diaria/*.csv  ──┘        (Playwright + portal)            (dataset público)
+```
+
+### O Roster de Entrada
+O arquivo `relacao-bolsistas_padronizado.csv` contém o mapeamento de cursos/instituições e endereços. 
 > [!IMPORTANT]
-> O arquivo de roster original contém dados pessoais dos estudantes (como endereços residenciais). Por esse motivo, ele está listado no `.gitignore` e **nunca deve ser enviado para o repositório público do GitHub**.
+> O arquivo de roster original contém dados pessoais residenciais. Por esse motivo, ele está listado no `.gitignore` e **nunca deve ser enviado para o repositório público**.
 
-### Comportamento do Scraper (Fallback Automático)
-O script de scraping foi projetado para ser robusto em ambientes de produção (como o servidor de scraper no Proxmox):
-1. **Com Roster Presente**: O script lê `relacao-bolsistas_padronizado.csv`, filtra os níveis incluídos e busca novas informações no portal para cada aluno listado.
-2. **Sem Roster Presente (Mecanismo de Fallback)**: Se o CSV não for encontrado no servidor, o script emitirá um aviso e carregará a lista de alunos do dataset público atualizado [app/dados/bolsas_publicas.json](file:///home/kevin/Work/personal/bolsas-quissama/app/dados/bolsas_publicas.json).
-   * **Vantagem**: O cron job diário continua funcionando em produção mesmo sem o arquivo original do roster, atualizando pagamentos e empenhos de todos os alunos cadastrados anteriormente.
+### Mecanismo de Fallback Automático
+O scraper [scripts/coletar_bolsas.py](file:///home/kevin/Work/personal/bolsas-quissama/scripts/coletar_bolsas.py) possui um fallback inteligente:
+1.  **Com Roster Presente:** Varre o portal para todos os alunos filtrados da planilha.
+2.  **Sem Roster Presente:** Se o arquivo `.csv` estiver ausente (padrão após um novo clone), o script emite um aviso e lê as informações básicas de nível, curso e instituição diretamente da base consolidada existente [app/dados/bolsas_publicas.json](file:///home/kevin/Work/personal/bolsas-quissama/app/dados/bolsas_publicas.json).
+    *   **Vantagem:** O pipeline do cron job continua atualizando pagamentos de todos os alunos existentes no piloto automático sem requerer arquivos privados no servidor.
 
 ### Atualização Manual do Roster
-Se houver novos bolsistas integrando o programa ou se o roster for alterado, você deve realizar o upload manual do arquivo da sua máquina de desenvolvimento local para o servidor de produção usando `scp`:
-
+Para cadastrar novos bolsistas integrando o programa:
 ```bash
-# Copiar o arquivo atualizado para o servidor Proxmox LXC
+# Copiar o roster atualizado da máquina local para o contêiner LXC
 scp relacao-bolsistas_padronizado.csv root@scraper-bolsas:/app/bolsas-quissama/
 ```
 
-Após copiar o arquivo, reexecute o script no servidor para forçar o scraping dos novos alunos:
-```bash
-python scripts/atualizar_dados.py
-```
-
 ---
 
-## 2. Infraestrutura do Servidor de Scraper
+## 4. Automação e Resiliência (Cron & `flock`)
 
-A execução periódica do Playwright requer um navegador completo rodando em background (Chromium), o que consome memória e recursos não suportados na hospedagem grátis do Render. A infraestrutura de coleta consiste em:
+Para lidar com quedas de energia e oscilações de internet, configuramos janelas de execução múltiplas no Crontab do contêiner (`crontab -e`):
 
-*   **Virtualização**: Rodando em um contêiner LXC Debian 12 no Proxmox VE local (host: `ragnar`, VM ID: `102`, hostname: `scraper-bolsas`).
-*   **Gerenciamento**: A infraestrutura do LXC é definida e provisionada via Terraform no diretório [infra/](file:///home/kevin/Work/personal/bolsas-quissama/infra/).
-
----
-
-## 3. Configuração do Script e Cron Job
-
-O pipeline de dados é atualizado automaticamente todos os dias às **06:00** através de um cron job no contêiner LXC.
-
-### Instalação no Servidor (Setup Inicial)
-No contêiner `/app/bolsas-quissama/`:
-```bash
-# Instalar dependências de coleta (Playwright, Pandas, etc.)
-pip install -r requirements-coleta.txt
-
-# Instalar o navegador Chromium gerenciado pelo Playwright
-playwright install chromium
-```
-
-### Configuração do Cron Job
-Abra as tarefas agendadas do sistema no servidor:
-```bash
-crontab -e
-```
-Adicione a seguinte linha (ajustando o caminho para o seu ambiente virtual do python):
 ```cron
-0 6 * * * cd /app/bolsas-quissama && /app/bolsas-quissama/.venv/bin/python scripts/atualizar_dados.py >> /var/log/bolsas_update.log 2>&1
+0 3,8,14,20 * * * /usr/bin/flock -n /tmp/scraper.lock /app/bolsas-quissama/venv/bin/python /app/bolsas-quissama/scripts/atualizar_dados.py >> /var/log/scraper.log 2>&1
 ```
 
-### Logs de Automação
-A saída de cada execução diária é salva no arquivo de log do sistema:
-*   `/var/log/bolsas_update.log`
+*   **Janelas Periódicas (3h, 8h, 14h, 20h):** Garante a execução logo no próximo horário útil caso o servidor estivesse desligado durante a madrugada.
+*   **Controle de Concorrência com `flock`:** Evita travamentos concorrentes e corrupção de arquivos. O utilitário `/usr/bin/flock` cria uma trava atômica no arquivo `/tmp/scraper.lock`. Se um disparo anterior ainda estiver rodando (por lentidão do portal ou timeout longo), a nova execução é abortada silenciosamente sem iniciar processos duplicados.
+*   **Prevenção de Commits Espúrios (Normalização do CSV):** O script [scripts/atualizar_dados.py](file:///home/kevin/Work/personal/bolsas-quissama/scripts/atualizar_dados.py) remove a última linha do CSV baixado (rodapé com carimbo dinâmico do PRONIM). Assim, se não houver novas movimentações de fato, o Git reconhece o arquivo como inalterado e pula a etapa de commit e push.
+*   **Timeout de Proteção:** O subprocesso de coleta possui timeout interno de **10 minutos** (`timeout=600`) para forçar o fechamento do Chromium caso ocorra algum congelamento a nível de rede no Playwright.
 
 ---
 
-## 4. Deploy e Monitoramento
+## 5. Histórico de Manutenção e Troubleshooting (Gestão de Crise)
 
-```
-[Home Server LXC] ───(git push se houver dados novos)───► [GitHub] ───(Auto-Deploy)───► [Render Production]
-```
+*   **Falha de Espaço em Disco no Host:** Durante o provisionamento IaC inicial, o Proxmox acusou erro HTTP 500 (`write to temporary file failed`).
+*   **Diagnóstico:** A partição raiz (`/dev/mapper/pve-root`) do Proxmox estava com **100% de uso (94GB ocupados)**.
+*   **Causa Raiz:** A pasta local `/tank/backups/kevin` estava alocando 68GB de backups redundantes diretamente no disco raiz do host físico.
+*   **Resolução:** Limpeza manual e expurgo dos diretórios, reduzindo o uso para **29% (64GB livres)**. Também foi removido o template do Debian corrompido pela metade e executado um `terraform refresh` para recuperar o estado e aplicar a infraestrutura com sucesso.
 
-### Auto-Deploy
-O deploy da aplicação FastAPI é hospedado no **Render**. O arquivo [render.yaml](file:///home/kevin/Work/personal/bolsas-quissama/render.yaml) configura o auto-deploy. Assim que o scraper diário executa na LXC e detecta alterações, ele faz o `git push` das movimentações atualizadas. O Render detecta o novo commit no GitHub e faz o deploy do app automaticamente.
+---
 
-### Monitoramento de Disponibilidade (UptimeRobot)
-Como a aplicação no Render é desligada após períodos de inatividade no plano gratuito, utilizamos um monitor do **UptimeRobot** para manter o serviço sempre ativo.
-*   **Tipo**: HTTPS
-*   **Frequência**: A cada 5 minutos
-*   **URL**: `https://bolsasquissama.com.br` (ou `https://bolsas-quissama.onrender.com`)
+## 6. Deploy e Monitoramento
+
+*   **Hospedagem:** FastAPI rodando no **Render**. O auto-deploy automático é acionado em cada push na branch `master` do GitHub.
+*   **Keep-Alive (UptimeRobot):** Como o Render suspende instâncias no plano gratuito por inatividade, um monitor HTTP no **UptimeRobot** dispara requisições a cada 5 minutos para `https://bolsasquissama.com.br` mantendo o site ativo e com respostas rápidas para os cidadãos.
