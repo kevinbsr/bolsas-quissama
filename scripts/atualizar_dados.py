@@ -72,10 +72,15 @@ def download_csv(ano: str, saida: Path) -> None:
 
 def run_coleta() -> None:
     print("[*] Executando scripts/coletar_bolsas.py para processar e atualizar o dataset público...")
-    res = subprocess.run([sys.executable, "scripts/coletar_bolsas.py"], cwd=str(BASE), capture_output=False)
-    if res.returncode != 0:
-        print("[-] Erro ao executar scripts/coletar_bolsas.py")
-        sys.exit(res.returncode)
+    try:
+        # Timeout de 10 minutos (600 segundos) para evitar travamento infinito no cron
+        res = subprocess.run([sys.executable, "scripts/coletar_bolsas.py"], cwd=str(BASE), capture_output=False, timeout=600)
+        if res.returncode != 0:
+            print("[-] Erro ao executar scripts/coletar_bolsas.py")
+            sys.exit(res.returncode)
+    except subprocess.TimeoutExpired:
+        print("[-] Erro: A execução de scripts/coletar_bolsas.py expirou o limite de 10 minutos.")
+        sys.exit(1)
     print("[+] Dataset público atualizado com sucesso!")
 
 def git_commit_push(ano: str, skip_push: bool) -> None:
