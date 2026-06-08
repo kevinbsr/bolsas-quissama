@@ -344,8 +344,27 @@ def _carregar_existente() -> dict:
 def _salvar(por_nome: dict) -> None:
     SAIDA.parent.mkdir(parents=True, exist_ok=True)
     alunos = sorted(por_nome.values(), key=lambda a: a["nome"])
-    SAIDA.write_text(json.dumps({"fonte": FONTE_NOME, "url": URL, "alunos": alunos},
-                                ensure_ascii=False, indent=2), encoding="utf-8")
+    
+    # Preserva a data de atualização se os dados não mudaram
+    data_atualizacao = None
+    if SAIDA.exists():
+        try:
+            d_antigo = json.loads(SAIDA.read_text(encoding="utf-8"))
+            if d_antigo.get("alunos") == alunos:
+                data_atualizacao = d_antigo.get("data_atualizacao")
+        except Exception:
+            pass
+            
+    if not data_atualizacao:
+        import datetime
+        data_atualizacao = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
+        
+    SAIDA.write_text(json.dumps({
+        "fonte": FONTE_NOME,
+        "url": URL,
+        "data_atualizacao": data_atualizacao,
+        "alunos": alunos
+    }, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def coletar_aluno(pg, a: dict) -> dict:

@@ -168,7 +168,11 @@ function renderHomeStats(d) {
   const hsM = document.getElementById("hsMetrics");
   if (hsM) {
     const ano = d.ano_roster ? ` em ${d.ano_roster}` : "";
-    hsM.innerHTML = `<span class="hs-pill">${d.total_alunos} bolsistas${ano}</span>`;
+    let html = `<span class="hs-pill">${d.total_alunos} bolsistas${ano}</span>`;
+    if (d.data_atualizacao) {
+      html += `<span class="hs-pill">Atualizado em: ${d.data_atualizacao}</span>`;
+    }
+    hsM.innerHTML = html;
   }
 
   // B — cards de resumo

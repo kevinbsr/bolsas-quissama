@@ -849,6 +849,8 @@ body.data-visible .shortcuts-guide {
 .hs-metrics-topo {
   display: flex;
   justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: 16px;
   margin-bottom: 20px;
 }

@@ -142,6 +142,8 @@ def index():
     d = resumo_geral()
     ano = f" em {d['ano_roster']}" if d.get("ano_roster") else ""
     pills = f'<span class="hs-pill">{d["total_alunos"]} bolsistas{ano}</span>'
+    if d.get("data_atualizacao"):
+        pills += f'<span class="hs-pill">Atualizado em: {d["data_atualizacao"]}</span>'
     # Espelha exatamente o renderHomeStats() do front (evita flash/layout shift)
     cards = (
         _stat_card("Total empenhado", _brl(d["total_empenhado"]))
