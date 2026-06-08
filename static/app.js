@@ -117,7 +117,7 @@ function dateKey(dateStr, view) {
 }
 
 function fetchResumoGeral() {
-  fetch("/api/resumo-geral")
+  fetch("/api/resumo-geral?t=" + Date.now())
     .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
     .then(d => {
       if (!d || typeof d.total_alunos !== "number") return Promise.reject("resposta sem dados — servidor desatualizado?");

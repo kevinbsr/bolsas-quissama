@@ -44,8 +44,13 @@ async def cache_headers(request, call_next):
     elif request.url.path.startswith("/static/"):
         # assets versionados por ?v= — podem ser cacheados com folga
         response.headers["Cache-Control"] = "public, max-age=86400"
+    elif request.url.path.startswith("/api/"):
+        # APIs de dados não devem ser cacheadas pelo navegador
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
     else:
-        # HTML/API: cacheável, mas sempre revalidado (o HTML embute números do dataset)
+        # HTML: cacheável, mas sempre revalidado (o HTML embute números do dataset)
         response.headers["Cache-Control"] = "no-cache"
     return response
 
