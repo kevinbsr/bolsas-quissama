@@ -140,7 +140,10 @@ def mapear_canonico(alunos: list[dict]) -> None:
 
 def buscar_grade(pg, nome: str, ano: str) -> dict[str, str]:
     """Retorna {numero_empenho: url_detalhe} dos empenhos do credor no ano."""
-    pg.goto(URL, wait_until="networkidle", timeout=60000)
+    # domcontentloaded em vez de networkidle: a página tem scripts de reCAPTCHA que
+    # mantêm a rede "ocupada"; networkidle fica lento e foi o que estourou o timeout
+    # do --forcar no container fraco. O form de busca já está no DOM.
+    pg.goto(URL, wait_until="domcontentloaded", timeout=60000)
     pg.select_option("select[name=cmbAno]", ano)
     # sem o range completo, o portal herda a janela padrão de 1 mês e perde mensalidades
     pg.fill("input[name=txtDataInicial]", f"01/01/{ano}")
@@ -288,7 +291,7 @@ def _classificar(norm: str, n_meses: int) -> tuple[str, str | None]:
 
 
 def abrir_detalhe(pg, url: str) -> dict:
-    pg.goto(url, wait_until="networkidle", timeout=60000)
+    pg.goto(url, wait_until="domcontentloaded", timeout=60000)
     pg.wait_for_timeout(1500)
     return parse_detalhe(pg.evaluate("() => document.body.innerText"))
 

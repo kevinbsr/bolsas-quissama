@@ -68,7 +68,9 @@ def download_csv(ano: str, saida: Path) -> None:
             b = pw.chromium.launch(headless=True, args=["--no-sandbox"])
             
         pg = b.new_page()
-        pg.goto(URL, wait_until="networkidle", timeout=60000)
+        # domcontentloaded (não networkidle): a página tem scripts de reCAPTCHA que mantêm
+        # a rede "ocupada", então networkidle fica lento/trava. O form já existe no DOM.
+        pg.goto(URL, wait_until="domcontentloaded", timeout=60000)
         pg.select_option("select[name=cmbAno]", ano)
         pg.fill("input[name=txtDataInicial]", f"01/01/{ano}")
         pg.fill("input[name=txtDataFinal]", f"31/12/{ano}")
@@ -129,11 +131,11 @@ def run_coleta() -> None:
     # cache pré-existente). Timeout maior (30 min) porque agora raspa todo mundo.
     try:
         res = subprocess.run([sys.executable, "scripts/coletar_bolsas.py", "--forcar"],
-                             cwd=str(BASE), capture_output=False, timeout=1800)
+                             cwd=str(BASE), capture_output=False, timeout=2700)
         if res.returncode != 0:
             sys.exit(f"coletar_bolsas.py falhou (rc={res.returncode}).")
     except subprocess.TimeoutExpired:
-        sys.exit("coletar_bolsas.py --forcar expirou o limite de 30 minutos.")
+        sys.exit("coletar_bolsas.py --forcar expirou o limite de 45 minutos.")
     print("[+] Dataset público atualizado com sucesso!")
 
 def git_sync() -> None:
@@ -171,16 +173,18 @@ def git_commit_push(ano: str, skip_push: bool) -> str:
         print("[+] Nenhuma alteração relevante nos arquivos de dados.")
         return "sem alterações nos dados"
 
+    if skip_push:
+        # dry-run de verdade: NÃO commita (evita poluir o git do container com commits
+        # locais que depois conflitam no 'git pull --rebase'). As mudanças ficam no tree.
+        print(f"[*] --skip-push ativo: alterações detectadas em {alterados}, mas NÃO vou commitar/push.")
+        return f"alterações detectadas (não commitado; --skip-push): {', '.join(alterados)}"
+
     print(f"[*] Adicionando arquivos ao git: {alterados}")
     subprocess.run(["git", "add"] + alterados, cwd=str(BASE), check=True)
 
     commit_msg = f"data: atualização automática diária ({ano})"
     print(f"[*] Fazendo commit: {commit_msg}")
     subprocess.run(["git", "commit", "-m", commit_msg], cwd=str(BASE), check=True)
-
-    if skip_push:
-        print("[*] Parâmetro --skip-push ativo. O push para o GitHub foi ignorado.")
-        return "commitado localmente (push pulado)"
 
     print("[*] Fazendo push para origin master (gatilho para auto-deploy no Render)...")
     subprocess.run(["git", "push", "origin", "master"], cwd=str(BASE), check=True)
