@@ -42,13 +42,33 @@ def download_csv(ano: str, saida: Path) -> None:
         pg.fill("input[name=txtDataFinal]", f"31/12/{ano}")
         
         print("[*] Enviando consulta (clicando em 'Gerar')...")
-        pg.click("input[value='Gerar']")
-        pg.wait_for_timeout(6000)
-        
+        try:
+            pg.click("input[value='Gerar']", timeout=10000)
+        except Exception:
+            # Depois do 'Gerar' (reCAPTCHA invisível) a página renderiza a grade mas NÃO
+            # emite o evento de "navegação concluída" que o Playwright espera — então o
+            # auto-wait do clique estoura. Ignoramos e validamos a grade por polling.
+            print("[!] Clique não 'concluiu navegação' (esperado); validando a grade por polling...")
+        print("[*] Aguardando a grade carregar (botão de export aparecer)...")
+        # polling com .count() não dispara auto-wait de navegação (que travaria aqui)
+        grade_ok = False
+        for _ in range(90):
+            if pg.locator("#btExportarCSV").count() > 0:
+                grade_ok = True
+                break
+            pg.wait_for_timeout(1000)
+        if not grade_ok:
+            print("[-] A grade não carregou após o 'Gerar' (timeout de 90s).")
+            sys.exit(1)
+        pg.wait_for_timeout(1000)
+
         print("[*] Iniciando download (clicando em '#btExportarCSV')...")
         try:
             with pg.expect_download(timeout=180000) as dl_info:
-                pg.click("#btExportarCSV")
+                try:
+                    pg.click("#btExportarCSV", timeout=10000)
+                except Exception:
+                    pass  # nav-wait pode estourar; o expect_download captura o download
             dl_info.value.save_as(str(saida))
             
             # Limpa o rodapé dinâmico do PRONIM (com timestamp) para evitar commits falsos
@@ -82,6 +102,18 @@ def run_coleta() -> None:
         print("[-] Erro: A execução de scripts/coletar_bolsas.py expirou o limite de 10 minutos.")
         sys.exit(1)
     print("[+] Dataset público atualizado com sucesso!")
+
+def git_sync() -> None:
+    """Converge com a master remota ANTES de gerar dados. O repositório também recebe
+    commits manuais do desenvolvedor; sem isso, o push no fim seria rejeitado
+    (non-fast-forward) e a produção nunca atualizaria. Tree limpo aqui (início do run)."""
+    print("[*] Sincronizando com a master remota (git pull --rebase origin master)...")
+    res = subprocess.run(["git", "pull", "--rebase", "origin", "master"], cwd=str(BASE))
+    if res.returncode != 0:
+        print("[-] Falha no 'git pull --rebase'. Repositório precisa de atenção manual; abortando.")
+        subprocess.run(["git", "rebase", "--abort"], cwd=str(BASE))
+        sys.exit(1)
+
 
 def git_commit_push(ano: str, skip_push: bool) -> None:
     print("[*] Verificando alterações no git...")
@@ -129,7 +161,9 @@ def main() -> None:
     args = p.parse_args()
     
     csv_saida = BASE / "movimentacao-diaria" / f"{args.ano}.csv"
-    
+
+    if not args.skip_push:
+        git_sync()
     download_csv(args.ano, csv_saida)
     run_coleta()
     git_commit_push(args.ano, args.skip_push)

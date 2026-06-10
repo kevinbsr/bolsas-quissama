@@ -146,7 +146,12 @@ def buscar_grade(pg, nome: str, ano: str) -> dict[str, str]:
     pg.fill("input[name=txtDataInicial]", f"01/01/{ano}")
     pg.fill("input[name=txtDataFinal]", f"31/12/{ano}")
     pg.fill("input[name=txtNomeFornecedor]", nome)
-    pg.click("input[value='Gerar']")
+    try:
+        pg.click("input[value='Gerar']", timeout=10000)
+    except Exception:
+        # após o 'Gerar' a página não emite "navegação concluída" (reCAPTCHA invisível),
+        # então o auto-wait do clique estoura. A grade é validada pelo wait_for_function abaixo.
+        pass
     # espera a tabela de resultados materializar (em vez de timeout fixo)
     try:
         pg.wait_for_function(
