@@ -54,6 +54,39 @@ def _data_atualizacao() -> str:
     except Exception:
         return "?"
 
+
+def _brl(v: float) -> str:
+    return "R$ " + f"{(v or 0):,.2f}".replace(",", "_").replace(".", ",").replace("_", ".")
+
+
+def _snapshot_pagos() -> dict:
+    """Mapa (nome, empenho) -> valor pago, do dataset atual em disco. Usado como
+    baseline ANTES da coleta para depois saber quem recebeu pagamento neste run."""
+    try:
+        d = json.loads(DATASET.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return {(a["nome"], m.get("empenho")): (m.get("pago") or 0)
+            for a in d.get("alunos", []) for m in a.get("mensalidades", [])}
+
+
+def _novos_pagamentos(antes: dict) -> list[tuple[str, float]]:
+    """Compara o baseline 'antes' com o dataset atual e devolve [(nome, valor_recebido)]
+    das parcelas cujo valor pago aumentou (agregado por aluno)."""
+    try:
+        d = json.loads(DATASET.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    por_aluno: dict[str, float] = {}
+    for a in d.get("alunos", []):
+        for m in a.get("mensalidades", []):
+            pn = m.get("pago") or 0
+            pa = antes.get((a["nome"], m.get("empenho")), 0)
+            if pn - pa > 0.001:
+                por_aluno[a["nome"]] = por_aluno.get(a["nome"], 0) + (pn - pa)
+    return sorted(por_aluno.items(), key=lambda x: x[0])
+
+
 def download_csv(ano: str, saida: Path) -> None:
     print(f"[*] Iniciando download do CSV de Movimentação Diária para o ano {ano}...")
     saida.parent.mkdir(parents=True, exist_ok=True)
@@ -204,14 +237,19 @@ def main() -> None:
     try:
         if not args.skip_push:
             git_sync()
+        # baseline ANTES da coleta (estado que a produção tem) p/ saber quem recebeu agora
+        pagos_antes = _snapshot_pagos()
         download_csv(args.ano, csv_saida)
         run_coleta()
         status = git_commit_push(args.ano, args.skip_push)
-        notificar(
-            f"✅ Run OK ({args.ano}) — {status}.\nDataset: {_data_atualizacao()}.",
-            titulo="Bolsas Quissama - scraper OK",
-            tags="white_check_mark",
-        )
+
+        corpo = f"✅ Run OK ({args.ano}) — {status}.\nDataset: {_data_atualizacao()}."
+        pagos = _novos_pagamentos(pagos_antes)
+        if pagos:
+            total = sum(v for _, v in pagos)
+            linhas = "\n".join(f"• {nome} — {_brl(v)}" for nome, v in pagos[:40])
+            corpo += f"\n\n💰 Receberam pagamento neste run ({len(pagos)} · {_brl(total)}):\n{linhas}"
+        notificar(corpo, titulo="Bolsas Quissama - scraper OK", tags="white_check_mark")
     except SystemExit as e:
         # falhas controladas (sys.exit("mensagem")) — e.code carrega a mensagem
         if e.code not in (0, None):
