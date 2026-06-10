@@ -10,8 +10,11 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import json
+import os
 import subprocess
 import sys
+import urllib.request
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
@@ -21,6 +24,35 @@ sys.path.insert(0, str(BASE))
 HOST = "https://webapp1-quissama.cidade360.cloud"
 URL = HOST + "/pronimtb/index.asp?acao=3&item=11"
 CHROMIUM = "/usr/bin/chromium"
+DATASET = BASE / "app" / "dados" / "bolsas_publicas.json"
+
+# Notificações via ntfy.sh — defina NTFY_URL no ambiente do cron, ex.:
+#   NTFY_URL=https://ntfy.sh/<um-topico-secreto-seu>
+# Sem isso (ex.: testes locais), as notificações são silenciosamente ignoradas.
+NTFY_URL = os.getenv("NTFY_URL", "").strip()
+
+
+def notificar(mensagem: str, titulo: str = "Bolsas Quissama", prioridade: str = "default", tags: str = "") -> None:
+    """Envia um push via ntfy.sh. No-op se NTFY_URL não estiver definida.
+    OBS: o header Title deve ser ASCII (emojis vão no corpo / via `tags`)."""
+    if not NTFY_URL:
+        print("[!] NTFY_URL não definida; notificação ignorada.")
+        return
+    try:
+        req = urllib.request.Request(
+            NTFY_URL, data=mensagem.encode("utf-8"), method="POST",
+            headers={"Title": titulo, "Priority": prioridade, "Tags": tags},
+        )
+        urllib.request.urlopen(req, timeout=15)
+    except Exception as e:
+        print(f"[!] Falha ao enviar notificação ntfy: {e}")
+
+
+def _data_atualizacao() -> str:
+    try:
+        return json.loads(DATASET.read_text(encoding="utf-8")).get("data_atualizacao", "?")
+    except Exception:
+        return "?"
 
 def download_csv(ano: str, saida: Path) -> None:
     print(f"[*] Iniciando download do CSV de Movimentação Diária para o ano {ano}...")
@@ -58,8 +90,7 @@ def download_csv(ano: str, saida: Path) -> None:
                 break
             pg.wait_for_timeout(1000)
         if not grade_ok:
-            print("[-] A grade não carregou após o 'Gerar' (timeout de 90s).")
-            sys.exit(1)
+            sys.exit("A grade não carregou após o 'Gerar' (timeout de 90s).")
         pg.wait_for_timeout(1000)
 
         print("[*] Iniciando download (clicando em '#btExportarCSV')...")
@@ -85,9 +116,9 @@ def download_csv(ano: str, saida: Path) -> None:
             tamanho = saida.stat().st_size
             print(f"[+] Download concluído com sucesso: {saida} ({tamanho:,} bytes)")
         except Exception as e:
-            print(f"[-] Erro ao baixar o CSV: {e}")
-            sys.exit(1)
-            
+            b.close()
+            sys.exit(f"Erro ao baixar o CSV: {e}")
+
         b.close()
 
 def run_coleta() -> None:
@@ -96,11 +127,9 @@ def run_coleta() -> None:
         # Timeout de 10 minutos (600 segundos) para evitar travamento infinito no cron
         res = subprocess.run([sys.executable, "scripts/coletar_bolsas.py"], cwd=str(BASE), capture_output=False, timeout=600)
         if res.returncode != 0:
-            print("[-] Erro ao executar scripts/coletar_bolsas.py")
-            sys.exit(res.returncode)
+            sys.exit(f"coletar_bolsas.py falhou (rc={res.returncode}).")
     except subprocess.TimeoutExpired:
-        print("[-] Erro: A execução de scripts/coletar_bolsas.py expirou o limite de 10 minutos.")
-        sys.exit(1)
+        sys.exit("coletar_bolsas.py expirou o limite de 10 minutos.")
     print("[+] Dataset público atualizado com sucesso!")
 
 def git_sync() -> None:
@@ -110,22 +139,21 @@ def git_sync() -> None:
     print("[*] Sincronizando com a master remota (git pull --rebase origin master)...")
     res = subprocess.run(["git", "pull", "--rebase", "origin", "master"], cwd=str(BASE))
     if res.returncode != 0:
-        print("[-] Falha no 'git pull --rebase'. Repositório precisa de atenção manual; abortando.")
         subprocess.run(["git", "rebase", "--abort"], cwd=str(BASE))
-        sys.exit(1)
+        sys.exit("Falha no 'git pull --rebase'; repositório precisa de atenção manual.")
 
 
-def git_commit_push(ano: str, skip_push: bool) -> None:
+def git_commit_push(ano: str, skip_push: bool) -> str:
+    """Retorna um resumo do que aconteceu (usado na notificação de sucesso)."""
     print("[*] Verificando alterações no git...")
-    # Verifica status
     res = subprocess.run(["git", "status", "--porcelain"], cwd=str(BASE), capture_output=True, text=True)
     if not res.stdout.strip():
         print("[+] Nenhuma alteração de arquivo no git.")
-        return
-        
+        return "sem alterações"
+
     print("[*] Estado do git:")
     print(res.stdout)
-    
+
     # Verifica se os arquivos de dados foram modificados
     arquivos_interesse = [f"movimentacao-diaria/{ano}.csv", "app/dados/bolsas_publicas.json"]
     alterados = []
@@ -134,24 +162,27 @@ def git_commit_push(ano: str, skip_push: bool) -> None:
         caminho = linha[3:].strip()
         if caminho in arquivos_interesse:
             alterados.append(caminho)
-            
+
     if not alterados:
         print("[+] Nenhuma alteração relevante nos arquivos de dados.")
-        return
-        
+        return "sem alterações nos dados"
+
     print(f"[*] Adicionando arquivos ao git: {alterados}")
     subprocess.run(["git", "add"] + alterados, cwd=str(BASE), check=True)
-    
+
     commit_msg = f"data: atualização automática diária ({ano})"
     print(f"[*] Fazendo commit: {commit_msg}")
     subprocess.run(["git", "commit", "-m", commit_msg], cwd=str(BASE), check=True)
-    
+
     if skip_push:
         print("[*] Parâmetro --skip-push ativo. O push para o GitHub foi ignorado.")
-    else:
-        print("[*] Fazendo push para origin master (gatilho para auto-deploy no Render)...")
-        subprocess.run(["git", "push", "origin", "master"], cwd=str(BASE), check=True)
-        print("[+] Push concluído! Render deve iniciar o deploy em breve.")
+        return "commitado localmente (push pulado)"
+
+    print("[*] Fazendo push para origin master (gatilho para auto-deploy no Render)...")
+    subprocess.run(["git", "push", "origin", "master"], cwd=str(BASE), check=True)
+    print("[+] Push concluído! Render deve iniciar o deploy em breve.")
+    return "dados novos enviados para produção"
+
 
 def main() -> None:
     ano_atual = str(datetime.date.today().year)
@@ -159,14 +190,38 @@ def main() -> None:
     p.add_argument("--ano", default=ano_atual, help=f"Ano a coletar (padrão: {ano_atual})")
     p.add_argument("--skip-push", action="store_true", help="Faz a coleta e commit, mas pula o git push")
     args = p.parse_args()
-    
+
     csv_saida = BASE / "movimentacao-diaria" / f"{args.ano}.csv"
 
-    if not args.skip_push:
-        git_sync()
-    download_csv(args.ano, csv_saida)
-    run_coleta()
-    git_commit_push(args.ano, args.skip_push)
+    try:
+        if not args.skip_push:
+            git_sync()
+        download_csv(args.ano, csv_saida)
+        run_coleta()
+        status = git_commit_push(args.ano, args.skip_push)
+        notificar(
+            f"✅ Run OK ({args.ano}) — {status}.\nDataset: {_data_atualizacao()}.",
+            titulo="Bolsas Quissama - scraper OK",
+            tags="white_check_mark",
+        )
+    except SystemExit as e:
+        # falhas controladas (sys.exit("mensagem")) — e.code carrega a mensagem
+        if e.code not in (0, None):
+            notificar(
+                f"❌ Run FALHOU ({args.ano}):\n{e.code}",
+                titulo="Bolsas Quissama - scraper FALHOU",
+                prioridade="high", tags="rotating_light",
+            )
+        raise
+    except BaseException as e:
+        import traceback
+        notificar(
+            f"❌ Run FALHOU ({args.ano}): {type(e).__name__}: {e}\n\n{traceback.format_exc()[-1200:]}",
+            titulo="Bolsas Quissama - scraper FALHOU",
+            prioridade="high", tags="rotating_light",
+        )
+        raise
+
 
 if __name__ == "__main__":
     main()
