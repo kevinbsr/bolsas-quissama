@@ -14,7 +14,7 @@ const COR = {
 };
 
 let chartValores, chartProcessos, chartProcessosModal;
-let chartPercentual, chartStatus;
+let chartPercentual, chartStatus, chartDesembolso;
 let _resumoGeral = null;
 let _rankDesktop = window.matchMedia("(min-width: 769px)").matches;
 let _mensalidadesAtual = [];
@@ -53,7 +53,7 @@ function updateChartThemes() {
     Chart.defaults.font.family = "'Open Sans', sans-serif";
 
     [chartValores, chartProcessos, chartProcessosModal,
-     chartPercentual, chartStatus].forEach(chart => {
+     chartPercentual, chartStatus, chartDesembolso].forEach(chart => {
         if (!chart) return;
         if (chart.options.scales?.x) {
             chart.options.scales.x.ticks.color = textColor;
@@ -223,7 +223,161 @@ function renderHomeStats(d) {
       plugins: { legend: { display: true, position: "bottom" } } }
   });
 
+  // D — insights de pagamentos gerais
+  const generalContainer = document.getElementById("generalInsights");
+  if (generalContainer && d.cadencia && d.cadencia.length) {
+    let totalDelays = 0;
+    let totalCount = 0;
+    d.cadencia.forEach(c => {
+      totalDelays += c.atraso_medio * c.total_mensalidades;
+      totalCount += c.total_mensalidades;
+    });
+    const avgDelay = totalCount > 0 ? (totalDelays / totalCount).toFixed(1) : "0.0";
+    const quitacaoPct = d.total_mensalidades > 0 ? ((d.mensalidades_pagas / d.total_mensalidades) * 100).toFixed(0) : "0";
+    const liqNP = d.liquidado_nao_pago || { valor: 0, parcelas: 0 };
+    const acordos = d.acordos || { alunos: 0, valor: 0 };
+
+    generalContainer.innerHTML = `
+      <div class="insight-card">
+        <div class="insight-header">
+          <div class="insight-icon brand">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </div>
+          <span class="insight-label">Atraso Médio</span>
+        </div>
+        <div class="insight-value">${avgDelay} meses</div>
+        <div class="insight-desc">Média de tempo que a prefeitura leva entre o mês de estudo e a liberação efetiva do dinheiro.</div>
+      </div>
+
+      <div class="insight-card">
+        <div class="insight-header">
+          <div class="insight-icon success">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </div>
+          <span class="insight-label">Parcelas Pagas</span>
+        </div>
+        <div class="insight-value">${quitacaoPct}%</div>
+        <div class="insight-desc">Porcentagem de todas as parcelas empenhadas em 2025/2026 que já foram pagas aos bolsistas ativos.</div>
+      </div>
+
+      <div class="insight-card">
+        <div class="insight-header">
+          <div class="insight-icon danger">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          </div>
+          <span class="insight-label">Frequência</span>
+        </div>
+        <div class="insight-value">Por Lote</div>
+        <div class="insight-desc">O fluxo de pagamento não é mensal constante. O município acumula as parcelas e as paga em lotes conjuntos.</div>
+      </div>
+
+      <div class="insight-card">
+        <div class="insight-header">
+          <div class="insight-icon danger">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+            </svg>
+          </div>
+          <span class="insight-label">Aguardando Pagamento</span>
+        </div>
+        <div class="insight-value">${brl(liqNP.valor)}</div>
+        <div class="insight-desc">Valor já liquidado (reconhecido formalmente pela prefeitura) em ${liqNP.parcelas} parcelas, mas ainda não pago aos bolsistas.</div>
+      </div>
+
+      <div class="insight-card">
+        <div class="insight-header">
+          <div class="insight-icon brand">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="9" y1="15" x2="15" y2="15"></line>
+            </svg>
+          </div>
+          <span class="insight-label">Acordos de Pagamento</span>
+        </div>
+        <div class="insight-value">${acordos.alunos} bolsistas</div>
+        <div class="insight-desc">Têm parcelas em regime de acordo (dívida renegociada), somando ${brl(acordos.valor)} empenhados.</div>
+      </div>
+    `;
+  }
+
+  renderDesembolso(d.desembolso_mensal || []);
+  renderPrazos(d.prazos || {});
+
   updateChartThemes();
+}
+
+// Item 1 — desembolso mês a mês (barras): mostra os pagamentos saindo em lotes
+function renderDesembolso(lista) {
+  const cv = document.getElementById("gDesembolso");
+  if (!cv) return;
+  const dados = lista.slice(-14); // últimos ~14 meses
+  const labels = dados.map(x => mesLabel(x.mes));
+  const valores = dados.map(x => x.pago);
+  if (chartDesembolso) chartDesembolso.destroy();
+  chartDesembolso = new Chart(cv, {
+    type: "bar",
+    data: { labels, datasets: [{
+      label: "Pago no mês",
+      data: valores,
+      backgroundColor: COR.chart3,
+      borderRadius: 6,
+      maxBarThickness: 48,
+    }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => brl(ctx.parsed.y) } },
+      },
+      scales: {
+        x: { grid: { display: false } },
+        y: { beginAtZero: true, ticks: { callback: v => "R$ " + (v / 1000) + "k" } },
+      },
+    },
+  });
+}
+
+// Item 2 — funil de prazos do processo (medianas em dias)
+function renderPrazos(p) {
+  const cont = document.getElementById("prazosFunil");
+  if (!cont) return;
+  const dias = n => `${n} ${n === 1 ? "dia" : "dias"}`;
+  const etapas = [
+    { lab: "Empenho → Liquidação", val: p.empenho_liquidacao,
+      desc: "Tempo até a prefeitura reconhecer formalmente a dívida (liquidação) após registrar o empenho.", icon: "brand" },
+    { lab: "Liquidação → Pagamento", val: p.liquidacao_pagamento,
+      desc: "Tempo entre o reconhecimento da dívida e o dinheiro de fato cair na conta do bolsista.", icon: "danger" },
+    { lab: "Total (Empenho → Pagamento)", val: p.empenho_pagamento,
+      desc: "Tempo total do processo, do empenho ao pagamento efetivo.", icon: "success" },
+  ];
+  cont.innerHTML = etapas.map(e => `
+    <div class="insight-card">
+      <div class="insight-header">
+        <div class="insight-icon ${e.icon}">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        </div>
+        <span class="insight-label">${e.lab}</span>
+      </div>
+      <div class="insight-value">${dias(e.val)}</div>
+      <div class="insight-desc">${e.desc}</div>
+    </div>
+  `).join("");
 }
 
 function buildProcessosData(mensalidades, view) {
@@ -347,6 +501,250 @@ function render(d) {
     },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: gc } } } },
   });
+
+  // Calcular insights individuais
+  const individualContainer = document.getElementById("individualInsights");
+  if (individualContainer) {
+    const listRefMonths = [];
+    (d.mensalidades || []).forEach(m => {
+      const refs = mesesDe(m);
+      refs.forEach(ref => {
+        if (!ref) return;
+        
+        const empDate = m.data_empenho;
+        if (!empDate) return;
+        const partsEmp = empDate.split("/");
+        if (partsEmp.length !== 3) return;
+        const empDay = Number(partsEmp[0]);
+        const empMonth = Number(partsEmp[1]);
+        const empYear = Number(partsEmp[2]);
+        
+        let delay = 0;
+        let isPaid = (m.pago || 0) > 0;
+        let dateText = "";
+        
+        if (isPaid && m.data_pagamento) {
+          const parts = m.data_pagamento.split("/");
+          if (parts.length === 3) {
+            const pDay = Number(parts[0]);
+            const pMonth = Number(parts[1]);
+            const pYear = Number(parts[2]);
+            delay = (pYear - empYear) * 12 + (pMonth - empMonth);
+            dateText = `${m.data_pagamento}`;
+          } else {
+            const hoje = new Date();
+            const pYear = hoje.getFullYear();
+            const pMonth = hoje.getMonth() + 1;
+            delay = (pYear - empYear) * 12 + (pMonth - empMonth);
+            dateText = "sem data registrada";
+          }
+        } else {
+          const hoje = new Date();
+          const pYear = hoje.getFullYear();
+          const pMonth = hoje.getMonth() + 1;
+          delay = (pYear - empYear) * 12 + (pMonth - empMonth);
+          dateText = "pendente";
+        }
+        delay = Math.max(0, delay);
+        listRefMonths.push({
+          ref,
+          refYear: Number(ref.split("-")[0]),
+          refMonth: Number(ref.split("-")[1]),
+          delay,
+          isPaid,
+          dateText,
+          dataEmpenho: m.data_empenho,
+          dataPagamento: m.data_pagamento,
+          valor: (m.pago > 0 ? m.pago : m.empenhado) || 0
+        });
+      });
+    });
+
+    function parseDmy(dStr) {
+      if (!dStr) return 0;
+      const p = dStr.split("/");
+      if (p.length !== 3) return 0;
+      return new Date(Number(p[2]), Number(p[1]) - 1, Number(p[0])).getTime();
+    }
+
+    // 1. Atraso médio de TODAS as parcelas (pagas + pendentes contadas até hoje),
+    //    para que a espera ainda em aberto também pese no número.
+    const paidMonths = listRefMonths.filter(m => m.isPaid);
+    const avgAllDelay = listRefMonths.length > 0
+      ? (listRefMonths.reduce((s, m) => s + m.delay, 0) / listRefMonths.length).toFixed(1)
+      : null;
+    const temPendente = listRefMonths.some(m => !m.isPaid);
+
+    // 2. Parcela mais antiga pendente (ordena pela data de empenho mais antiga)
+    const pendingMonths = listRefMonths.filter(m => !m.isPaid).sort((a, b) => {
+      return parseDmy(a.dataEmpenho) - parseDmy(b.dataEmpenho);
+    });
+    const oldestPending = pendingMonths.length > 0 ? pendingMonths[0] : null;
+
+    // 3. Última parcela recebida (ordena pela data de pagamento mais recente)
+    const sortedPaid = [...paidMonths].sort((a, b) => {
+      return parseDmy(b.dataPagamento) - parseDmy(a.dataPagamento);
+    });
+    const latestPaid = sortedPaid.length > 0 ? sortedPaid[0] : null;
+
+    // Montar os HTML cards
+    let card1Html = "";
+    if (avgAllDelay !== null) {
+      const descAtraso = temPendente
+        ? "Tempo médio de espera por parcela, somando as já pagas e as ainda pendentes (contadas até hoje)."
+        : "Tempo médio que o município levou para creditar as parcelas deste bolsista.";
+      card1Html = `
+        <div class="insight-card">
+          <div class="insight-header">
+            <div class="insight-icon brand">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
+            <span class="insight-label">Atraso Médio</span>
+          </div>
+          <div class="insight-value">${avgAllDelay} meses</div>
+          <div class="insight-desc">${descAtraso}</div>
+        </div>
+      `;
+    } else {
+      card1Html = `
+        <div class="insight-card">
+          <div class="insight-header">
+            <div class="insight-icon brand">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
+            <span class="insight-label">Atraso Médio</span>
+          </div>
+          <div class="insight-value">Sem registros</div>
+          <div class="insight-desc">Não há registro de recebimento registrado para este bolsista.</div>
+        </div>
+      `;
+    }
+
+    let card2Html = "";
+    if (oldestPending) {
+      const mesesSuf = oldestPending.delay === 1 ? "mês" : "meses";
+      card2Html = `
+        <div class="insight-card">
+          <div class="insight-header">
+            <div class="insight-icon danger">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            </div>
+            <span class="insight-label">Mais Antiga Pendente</span>
+          </div>
+          <div class="insight-value">${mesLabel(oldestPending.ref)}</div>
+          <div class="insight-desc">Esta mensalidade está atualmente pendente há <b>${oldestPending.delay} ${mesesSuf}</b>.</div>
+        </div>
+      `;
+    } else {
+      card2Html = `
+        <div class="insight-card">
+          <div class="insight-header">
+            <div class="insight-icon success">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </div>
+            <span class="insight-label">Pendências</span>
+          </div>
+          <div class="insight-value">Nenhuma</div>
+          <div class="insight-desc">Todas as parcelas registradas deste bolsista foram pagas.</div>
+        </div>
+      `;
+    }
+
+    let card3Html = "";
+    if (latestPaid) {
+      const delaySuf = latestPaid.delay === 1 ? "mês" : "meses";
+      const delayText = latestPaid.delay > 0 ? `com ${latestPaid.delay} ${delaySuf} de atraso` : "no prazo";
+      card3Html = `
+        <div class="insight-card">
+          <div class="insight-header">
+            <div class="insight-icon success">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+                <line x1="12" y1="10" x2="12" y2="10"></line>
+                <line x1="2" y1="8" x2="22" y2="8"></line>
+              </svg>
+            </div>
+            <span class="insight-label">Último Recebido</span>
+          </div>
+          <div class="insight-value">${mesLabel(latestPaid.ref)}</div>
+          <div class="insight-desc">Pago em <b>${latestPaid.dateText}</b> ${delayText}.</div>
+        </div>
+      `;
+    } else {
+      card3Html = `
+        <div class="insight-card">
+          <div class="insight-header">
+            <div class="insight-icon danger">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+                <line x1="12" y1="10" x2="12" y2="10"></line>
+                <line x1="2" y1="8" x2="22" y2="8"></line>
+              </svg>
+            </div>
+            <span class="insight-label">Último Recebido</span>
+          </div>
+          <div class="insight-value">Nenhum</div>
+          <div class="insight-desc">Não há registro de recebimento registrado para este bolsista.</div>
+        </div>
+      `;
+    }
+
+    // Item 7 — maior atraso já enfrentado (entre as parcelas já pagas)
+    const worstPaid = paidMonths.length
+      ? paidMonths.reduce((a, b) => (b.delay > a.delay ? b : a))
+      : null;
+    let card4Html = "";
+    if (worstPaid && worstPaid.delay > 0) {
+      const suf = worstPaid.delay === 1 ? "mês" : "meses";
+      card4Html = `
+        <div class="insight-card">
+          <div class="insight-header">
+            <div class="insight-icon danger">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+            </div>
+            <span class="insight-label">Maior Atraso</span>
+          </div>
+          <div class="insight-value">${worstPaid.delay} ${suf}</div>
+          <div class="insight-desc">Maior espera já enfrentada para uma parcela ser paga — referente a ${mesLabel(worstPaid.ref)}.</div>
+        </div>
+      `;
+    } else {
+      card4Html = `
+        <div class="insight-card">
+          <div class="insight-header">
+            <div class="insight-icon success">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </div>
+            <span class="insight-label">Maior Atraso</span>
+          </div>
+          <div class="insight-value">Sem atraso</div>
+          <div class="insight-desc">As parcelas pagas a este bolsista saíram dentro do mês do empenho.</div>
+        </div>
+      `;
+    }
+
+    individualContainer.innerHTML = card1Html + card2Html + card3Html + card4Html;
+  }
 
   _mensalidadesAtual = d.mensalidades || [];
   renderChartProcessos(chartProcessosView);

@@ -1373,3 +1373,100 @@ body.data-visible #homeStats { display: none; }
     transform: rotate(360deg);
   }
 }
+
+/* D — cadência de pagamentos */
+.hs-cadencia {
+  margin-top: 16px;
+}
+.chart-card.card-full {
+  grid-column: 1 / -1;
+}
+.chart-subtitle {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-top: -6px;
+  margin-bottom: 16px;
+}
+
+/* ── Insights (Mobile Friendly) ─────────────────────────────────────── */
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+  margin-bottom: 20px;
+}
+.insight-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.insight-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.insight-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+.insight-icon.brand {
+  background: var(--md-sys-color-primary-container);
+  color: var(--brand);
+}
+.insight-icon.success {
+  background: rgba(52, 211, 153, 0.15);
+  color: var(--md-sys-color-success);
+}
+[data-theme="light"] .insight-icon.success {
+  background: rgba(21, 128, 61, 0.12);
+}
+.insight-icon.danger {
+  background: rgba(251, 113, 133, 0.15);
+  color: var(--md-sys-color-error);
+}
+[data-theme="light"] .insight-icon.danger {
+  background: rgba(190, 18, 60, 0.1);
+}
+.insight-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.insight-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.1;
+}
+.insight-desc {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.disclaimer-note {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-top: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  opacity: 0.85;
+  border-top: 1px dashed var(--border);
+  padding-top: 12px;
+}
+.disclaimer-note svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--brand);
+}

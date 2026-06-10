@@ -46,7 +46,7 @@
     <!-- Dados estruturados (schema.org) — injetados pelo servidor -->
     <script type="application/ld+json">__SSR_JSONLD__</script>
 
-    <link rel="stylesheet" href="/static/style.css?v=1.4.1" />
+    <link rel="stylesheet" href="/static/style.css?v=1.4.3" />
     <script
       defer
       src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"
@@ -57,7 +57,7 @@
       href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300..800&display=swap"
       rel="stylesheet"
     />
-    <script defer src="/static/app.js?v=1.2.6"></script>
+    <script defer src="/static/app.js?v=1.2.9"></script>
   </head>
   <body class="initial-state">
     <button id="themeToggle" class="theme-toggle" title="Alternar tema">
@@ -182,6 +182,53 @@
             </div>
           </div>
         </div>
+
+        <!-- Item 1: desembolso mês a mês -->
+        <div class="hs-desembolso">
+          <div class="chart-card card-full">
+            <h2>Desembolso mês a mês</h2>
+            <p class="chart-subtitle">Quanto a prefeitura efetivamente pagou em bolsas a cada mês — evidencia que os pagamentos saem em lotes, não de forma constante.</p>
+            <div class="chart-container" style="height: 280px">
+              <canvas id="gDesembolso"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Item 2: prazos do processo (funil de etapas) -->
+        <div class="hs-prazos">
+          <div class="chart-card card-full">
+            <h2>Prazos do processo</h2>
+            <p class="chart-subtitle">Tempo típico (mediana) entre cada etapa, do empenho até o pagamento efetivo.</p>
+            <div id="prazosFunil" class="insights-grid"><!-- Dynamically populated via JS --></div>
+            <div class="disclaimer-note">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+              <span><b>Mediana, não média:</b> usamos a mediana para que poucos casos extremos não distorçam o tempo típico. As etapas anteriores (mês de direito e protocolo do processo) ocorrem antes do empenho e não entram nesta contagem.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- D: cadência de pagamentos -->
+        <div class="hs-cadencia">
+          <div class="chart-card card-full">
+            <h2>Insights de Pagamento (Geral)</h2>
+            <p class="chart-subtitle">Análise simplificada do tempo de liberação e atraso das bolsas pelo município.</p>
+            <div id="generalInsights" class="insights-grid">
+              <!-- Dynamically populated via JS -->
+            </div>
+            <div class="disclaimer-note">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+              <span><b>Nota sobre os prazos:</b> O atraso é contabilizado a partir da data em que o empenho é registrado/enviado à Secretaria de Fazenda. Ele não reflete a data real do mês de direito da bolsa ou do mês de protocolo do processo na prefeitura, que ocorrem sempre antes.</span>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section id="estado" class="estado"></section>
@@ -228,6 +275,23 @@
               </div>
             </div>
             <div class="chart-container"><canvas id="gProcessos"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Histórico de Mensalidades por Mês de Referência -->
+        <div class="chart-card card-full" style="margin-top: 16px;">
+          <h2>Insights de Pagamento do Bolsista</h2>
+          <p class="chart-subtitle">Análise simplificada do tempo de atraso e status das mensalidades deste aluno.</p>
+          <div id="individualInsights" class="insights-grid">
+            <!-- Dynamically populated via JS -->
+          </div>
+          <div class="disclaimer-note">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <span><b>Nota sobre os prazos:</b> O atraso é contabilizado a partir da data em que o empenho é registrado/enviado à Secretaria de Fazenda. Ele não reflete a data real do mês de direito da bolsa ou do mês de protocolo do processo na prefeitura, que ocorrem sempre antes.</span>
           </div>
         </div>
 
