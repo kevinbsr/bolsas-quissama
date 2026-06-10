@@ -122,14 +122,18 @@ def download_csv(ano: str, saida: Path) -> None:
         b.close()
 
 def run_coleta() -> None:
-    print("[*] Executando scripts/coletar_bolsas.py para processar e atualizar o dataset público...")
+    print("[*] Executando scripts/coletar_bolsas.py --forcar (re-coleta TODOS os alunos)...")
+    # --forcar é essencial: sem ele o modo padrão PULA quem já está no dataset e nada
+    # de pagamento/empenho novo dos alunos existentes é atualizado. Com --forcar o
+    # scraper re-raspa os 97 do portal e reconstrói com o CSV fresco (não depende de
+    # cache pré-existente). Timeout maior (30 min) porque agora raspa todo mundo.
     try:
-        # Timeout de 10 minutos (600 segundos) para evitar travamento infinito no cron
-        res = subprocess.run([sys.executable, "scripts/coletar_bolsas.py"], cwd=str(BASE), capture_output=False, timeout=600)
+        res = subprocess.run([sys.executable, "scripts/coletar_bolsas.py", "--forcar"],
+                             cwd=str(BASE), capture_output=False, timeout=1800)
         if res.returncode != 0:
             sys.exit(f"coletar_bolsas.py falhou (rc={res.returncode}).")
     except subprocess.TimeoutExpired:
-        sys.exit("coletar_bolsas.py expirou o limite de 10 minutos.")
+        sys.exit("coletar_bolsas.py --forcar expirou o limite de 30 minutos.")
     print("[+] Dataset público atualizado com sucesso!")
 
 def git_sync() -> None:
