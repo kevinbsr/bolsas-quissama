@@ -56,11 +56,11 @@ resource "proxmox_virtual_environment_container" "scraper_lxc" {
   }
 
   cpu {
-    cores = 1
+    cores = 2
   }
 
   memory {
-    dedicated = 1024
+    dedicated = 4096
   }
 
   disk {
