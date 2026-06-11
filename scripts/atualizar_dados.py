@@ -156,21 +156,23 @@ def download_csv(ano: str, saida: Path) -> None:
 
         b.close()
 
-def run_coleta() -> None:
-    print("[*] Executando scripts/coletar_bolsas.py --incremental (rápido: só empenhos novos)...")
-    # --incremental: raspa SÓ os empenhos do CSV que ainda não estão em cache e depois
-    # reparseia tudo do CSV fresco. Num dia normal são pouquíssimos empenhos novos, então
-    # roda em segundos/minutos (vs ~2h do --forcar, que estourava o timeout). O reparse já
-    # reaplica valores/anulações a todos os alunos. A verificação completa (--forcar) deve
-    # rodar à parte, uma vez por semana, como rede de segurança. Timeout de 45 min cobre
-    # uma eventual primeira execução com cache incompleto (backfill pontual).
+def run_coleta(full: bool = False) -> None:
+    # Modo padrão (diário): --incremental — raspa SÓ os empenhos do CSV que ainda não estão
+    # em cache e reparseia tudo do CSV fresco. Roda em segundos/minutos. Modo --full
+    # (semanal): --forcar — re-raspa TODOS os 97 alunos do portal, pegando alunos novos no
+    # roster e re-buscando o `raw` caso o portal tenha corrigido algum detalhe. É a rede de
+    # segurança que o incremental não cobre, mas é network-bound (~2h), por isso só semanal.
+    modo = "--forcar" if full else "--incremental"
+    # --forcar leva ~2h (limite de 3h); incremental cobre eventual backfill em até 45 min.
+    limite = 10800 if full else 2700
+    print(f"[*] Executando scripts/coletar_bolsas.py {modo} (timeout {limite//60} min)...")
     try:
-        res = subprocess.run([sys.executable, "scripts/coletar_bolsas.py", "--incremental"],
-                             cwd=str(BASE), capture_output=False, timeout=2700)
+        res = subprocess.run([sys.executable, "scripts/coletar_bolsas.py", modo],
+                             cwd=str(BASE), capture_output=False, timeout=limite)
         if res.returncode != 0:
-            sys.exit(f"coletar_bolsas.py falhou (rc={res.returncode}).")
+            sys.exit(f"coletar_bolsas.py {modo} falhou (rc={res.returncode}).")
     except subprocess.TimeoutExpired:
-        sys.exit("coletar_bolsas.py --incremental expirou o limite de 45 minutos.")
+        sys.exit(f"coletar_bolsas.py {modo} expirou o limite de {limite//60} minutos.")
     print("[+] Dataset público atualizado com sucesso!")
 
 def git_sync() -> None:
@@ -232,9 +234,11 @@ def main() -> None:
     p = argparse.ArgumentParser(description="Script de automação diária do pipeline de bolsas (home server)")
     p.add_argument("--ano", default=ano_atual, help=f"Ano a coletar (padrão: {ano_atual})")
     p.add_argument("--skip-push", action="store_true", help="Faz a coleta e commit, mas pula o git push")
+    p.add_argument("--full", action="store_true", help="Verificação completa (--forcar, ~2h): re-raspa todos os alunos. Use no cron semanal.")
     args = p.parse_args()
 
     csv_saida = BASE / "movimentacao-diaria" / f"{args.ano}.csv"
+    rotulo = "completo" if args.full else "incremental"
 
     try:
         if not args.skip_push:
@@ -242,10 +246,10 @@ def main() -> None:
         # baseline ANTES da coleta (estado que a produção tem) p/ saber quem recebeu agora
         pagos_antes = _snapshot_pagos()
         download_csv(args.ano, csv_saida)
-        run_coleta()
+        run_coleta(full=args.full)
         status = git_commit_push(args.ano, args.skip_push)
 
-        corpo = f"✅ Run OK ({args.ano}) — {status}.\nDataset: {_data_atualizacao()}."
+        corpo = f"✅ Run OK ({args.ano}, {rotulo}) — {status}.\nDataset: {_data_atualizacao()}."
         pagos = _novos_pagamentos(pagos_antes)
         if pagos:
             total = sum(v for _, v in pagos)
@@ -256,7 +260,7 @@ def main() -> None:
         # falhas controladas (sys.exit("mensagem")) — e.code carrega a mensagem
         if e.code not in (0, None):
             notificar(
-                f"❌ Run FALHOU ({args.ano}):\n{e.code}",
+                f"❌ Run FALHOU ({args.ano}, {rotulo}):\n{e.code}",
                 titulo="Bolsas Quissama - scraper FALHOU",
                 prioridade="high", tags="rotating_light",
             )
@@ -264,7 +268,7 @@ def main() -> None:
     except BaseException as e:
         import traceback
         notificar(
-            f"❌ Run FALHOU ({args.ano}): {type(e).__name__}: {e}\n\n{traceback.format_exc()[-1200:]}",
+            f"❌ Run FALHOU ({args.ano}, {rotulo}): {type(e).__name__}: {e}\n\n{traceback.format_exc()[-1200:]}",
             titulo="Bolsas Quissama - scraper FALHOU",
             prioridade="high", tags="rotating_light",
         )
