@@ -375,12 +375,13 @@ def _salvar(por_nome: dict) -> None:
     }, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def coletar_aluno(pg, a: dict) -> dict:
+def coletar_aluno(pg, a: dict, outros: list[str] | None = None) -> dict:
     """Raspa as mensalidades de bolsa de um aluno (nome canônico já resolvido)."""
     nome = a["nome_canonico"]
     # valores/datas/status já agregados pelo csv_loader; também é a lista de
-    # empenhos ESPERADOS por ano (verificação anti-flakiness)
-    base = buscar(nome)
+    # empenhos ESPERADOS por ano (verificação anti-flakiness). `outros` evita herdar
+    # empenhos de um bolsista cujo nome contenha o nosso como subconjunto.
+    base = buscar(nome, outros)
     por_empenho, esperado_por_ano = {}, defaultdict(set)
     for r in base["registros"]:
         num = r["empenho"].lstrip("0") or "0"
@@ -474,12 +475,13 @@ def coletar(limite: int | None = None, alvos: list[str] | None = None, forcar: b
             print(f"[!] Aviso: Não foi possível iniciar o Chromium em '{CHROMIUM}'. Tentando padrão do Playwright...")
             b = pw.chromium.launch(headless=True, args=["--no-sandbox"])
         pg = b.new_page()
+        nomes_todos = [x["nome_canonico"] for x in alunos]
         for a in alunos:
             nome = a["nome_canonico"]
             if not forcar and por_nome.get(nome, {}).get("mensalidades"):
                 print(f"  {nome}: já no dataset, pulando")
                 continue
-            por_nome[nome] = coletar_aluno(pg, a)
+            por_nome[nome] = coletar_aluno(pg, a, nomes_todos)
             print(f"  {nome}: {len(por_nome[nome]['mensalidades'])} mensalidades de bolsa", flush=True)
             _salvar(por_nome)  # incremental + merge (não sobrescreve quem já existe)
         b.close()
@@ -494,9 +496,10 @@ def reparsear() -> None:
     por_nome = _carregar_existente()
     fixados = 0
     from app.csv_loader import buscar as csv_buscar
+    nomes_todos = list(por_nome.keys())
     for nome, a in list(por_nome.items()):
         # Obtém os registros oficiais do CSV para poder filtrar os anulados e incluir novos
-        base = csv_buscar(nome)
+        base = csv_buscar(nome, nomes_todos)
         por_empenho = {r["empenho"].lstrip("0") or "0": r for r in base["registros"]}
         
         novas_mensalidades = []
@@ -597,9 +600,10 @@ def incremental() -> None:
             print(f"[!] Aviso: Não foi possível iniciar o Chromium em '{CHROMIUM}'. Tentando padrão do Playwright...")
             b = pw.chromium.launch(headless=True, args=["--no-sandbox"])
         pg = b.new_page()
+        nomes_todos = [x["nome_canonico"] for x in alunos]
         for a in alunos:
             nome = a["nome_canonico"]
-            base = csv_buscar(nome)
+            base = csv_buscar(nome, nomes_todos)
             faltando_por_ano: dict[str, set] = defaultdict(set)
             for r in base["registros"]:
                 num = r["empenho"].lstrip("0") or "0"

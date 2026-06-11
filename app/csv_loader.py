@@ -161,15 +161,32 @@ def sugerir(termo: str) -> list[str]:
     return sorted(df[mask]["credor"].unique().tolist())[:10] # Limita a 10 sugestões
 
 
-def buscar(nome: str) -> dict:
-    """Retorna os empenhos do credor baseados exclusivamente nos dados oficiais do portal."""
+def buscar(nome: str, outros: list[str] | None = None) -> dict:
+    """Retorna os empenhos do credor baseados exclusivamente nos dados oficiais do portal.
+
+    Casa um credor do CSV com `nome` se os tokens de `nome` ⊆ tokens do credor (tolera
+    grafias mais completas no CSV, ex.: a bolsista "CAMYLLA MOTTA PEREIRA" também aparece
+    como "CAMYLLA MOTTA PEREIRA MEIRA"). Mas, para não herdar empenhos de OUTRA pessoa cujo
+    nome contenha o nosso como subconjunto (ex.: "HENRIQUE DOS SANTOS DE SOUZA" ⊆ "PEDRO
+    HENRIQUE DE SOUZA SANTOS"), `outros` recebe os nomes dos demais bolsistas: um credor
+    reivindicado por um bolsista MAIS ESPECÍFICO (superconjunto estrito de tokens) é dele,
+    não nosso. Sem `outros`, cai numa correspondência exata de tokens (conservadora)."""
     df = _df_completo()
-    
+
     if df.empty:
         return {"nome": nome, "registros": [], "resumo": _resumo([])}
 
-    tokens = _tokens(nome)
-    mask = df["_credor"].apply(lambda x: all(t in x for t in tokens))
+    alvo = set(_tokens(nome))
+    # token-sets de bolsistas mais específicos que `alvo` (superconjunto estrito)
+    mais_especificos = [t for t in (set(_tokens(o)) for o in (outros or [])) if alvo < t]
+
+    def _casa(credor_norm: str) -> bool:
+        ct = set(credor_norm.split()) - _STOP
+        if outros is None:
+            return ct == alvo  # fallback conservador (sem contexto dos demais)
+        return alvo <= ct and not any(t <= ct for t in mais_especificos)
+
+    mask = df["_credor"].apply(_casa)
     sub = df[mask]
     credores = sub["credor"].unique().tolist() if not sub.empty else []
     regs = _agg(sub)
