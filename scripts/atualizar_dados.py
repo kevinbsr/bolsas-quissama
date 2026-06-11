@@ -157,18 +157,20 @@ def download_csv(ano: str, saida: Path) -> None:
         b.close()
 
 def run_coleta() -> None:
-    print("[*] Executando scripts/coletar_bolsas.py --forcar (re-coleta TODOS os alunos)...")
-    # --forcar é essencial: sem ele o modo padrão PULA quem já está no dataset e nada
-    # de pagamento/empenho novo dos alunos existentes é atualizado. Com --forcar o
-    # scraper re-raspa os 97 do portal e reconstrói com o CSV fresco (não depende de
-    # cache pré-existente). Timeout maior (30 min) porque agora raspa todo mundo.
+    print("[*] Executando scripts/coletar_bolsas.py --incremental (rápido: só empenhos novos)...")
+    # --incremental: raspa SÓ os empenhos do CSV que ainda não estão em cache e depois
+    # reparseia tudo do CSV fresco. Num dia normal são pouquíssimos empenhos novos, então
+    # roda em segundos/minutos (vs ~2h do --forcar, que estourava o timeout). O reparse já
+    # reaplica valores/anulações a todos os alunos. A verificação completa (--forcar) deve
+    # rodar à parte, uma vez por semana, como rede de segurança. Timeout de 45 min cobre
+    # uma eventual primeira execução com cache incompleto (backfill pontual).
     try:
-        res = subprocess.run([sys.executable, "scripts/coletar_bolsas.py", "--forcar"],
+        res = subprocess.run([sys.executable, "scripts/coletar_bolsas.py", "--incremental"],
                              cwd=str(BASE), capture_output=False, timeout=2700)
         if res.returncode != 0:
             sys.exit(f"coletar_bolsas.py falhou (rc={res.returncode}).")
     except subprocess.TimeoutExpired:
-        sys.exit("coletar_bolsas.py --forcar expirou o limite de 45 minutos.")
+        sys.exit("coletar_bolsas.py --incremental expirou o limite de 45 minutos.")
     print("[+] Dataset público atualizado com sucesso!")
 
 def git_sync() -> None:
