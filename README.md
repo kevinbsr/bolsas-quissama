@@ -11,6 +11,12 @@ navegar (consulta por empenho, sem visão por aluno). Este projeto coleta esses 
 reorganiza por estudante e por mês de referência, e os expõe numa interface de busca
 simples — além de métricas agregadas (total pago, atrasos, prazos do processo).
 
+<p align="center">
+  <img src="docs/hero.png" width="48%" alt="Página inicial: busca da bolsa por nome do aluno">
+  &nbsp;
+  <img src="docs/dashboard.png" width="48%" alt="Painel de indicadores: desembolso mês a mês e prazos do processo">
+</p>
+
 > **Escopo:** bolsistas do **Ensino Superior** e **Especialização**, que são reembolsados
 > individualmente e, por isso, têm empenho no nome do aluno. O Ensino Médio é pago de
 > forma coletiva à instituição e não possui registro individual no portal.
