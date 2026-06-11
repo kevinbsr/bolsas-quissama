@@ -571,16 +571,83 @@ def reparsear() -> None:
     print(f"Reparse: {fixados} meses recuperados em {len(por_nome)} alunos")
 
 
+def incremental() -> None:
+    """Modo rápido diário: raspa SÓ os empenhos do CSV que ainda não estão em cache e,
+    em seguida, reparseia tudo a partir do CSV fresco. Não re-raspa os ~2300 empenhos já
+    cacheados (que o --forcar refaz à toa), então roda em segundos/minutos em vez de ~2h.
+
+    Cobertura vs --forcar: o reparse já lê o CSV fresco e reaplica valores/anulações a
+    todos os empenhos cacheados; o único furo que ele tem — empenhos novos sem cache — é
+    justamente o que este passo preenche. O que ainda só o --forcar semanal pega: re-busca
+    do `raw` (caso o portal corrija o texto de um detalhe) e alunos totalmente novos no
+    roster (o reparse itera só o dataset existente). Por isso: incremental todo dia,
+    --forcar uma vez por semana como rede de segurança."""
+    from app.csv_loader import buscar as csv_buscar
+
+    alunos = carregar_roster()
+    mapear_canonico(alunos)
+    alunos = [a for a in alunos if a["nome_canonico"]]
+    print(f"[incremental] {len(alunos)} alunos no roster; procurando empenhos novos...")
+
+    novos = 0
+    with sync_playwright() as pw:
+        try:
+            b = pw.chromium.launch(executable_path=CHROMIUM, headless=True, args=["--no-sandbox"])
+        except Exception:
+            print(f"[!] Aviso: Não foi possível iniciar o Chromium em '{CHROMIUM}'. Tentando padrão do Playwright...")
+            b = pw.chromium.launch(headless=True, args=["--no-sandbox"])
+        pg = b.new_page()
+        for a in alunos:
+            nome = a["nome_canonico"]
+            base = csv_buscar(nome)
+            faltando_por_ano: dict[str, set] = defaultdict(set)
+            for r in base["registros"]:
+                num = r["empenho"].lstrip("0") or "0"
+                if not (CACHE / f"{r['ano']}-{num}.json").exists():
+                    faltando_por_ano[r["ano"]].add(num)
+            if not faltando_por_ano:
+                continue
+            for ano, faltando in sorted(faltando_por_ano.items()):
+                grade = {}
+                for tent in range(4):  # re-tenta (flakiness/rede) até cobrir o que falta
+                    try:
+                        grade = buscar_grade(pg, nome, ano)
+                        if faltando <= set(grade):
+                            break
+                    except Exception as e:  # noqa: BLE001
+                        print(f"   .. rede {nome} {ano} (tent {tent+1}): {repr(e)[:70]}")
+                    time.sleep(3)
+                for numero in sorted(faltando & set(grade)):
+                    try:
+                        detalhe_cacheado(pg, numero, ano, grade[numero])
+                        novos += 1
+                        print(f"  + {nome} {ano}-{numero} cacheado")
+                    except Exception as e:  # noqa: BLE001
+                        print(f"   .. detalhe {numero} falhou: {repr(e)[:70]}")
+                ausentes = faltando - set(grade)
+                if ausentes:
+                    print(f"  !! {nome} {ano}: não achei na grade {sorted(ausentes)}")
+        b.close()
+
+    print(f"[incremental] {novos} empenho(s) novo(s) cacheado(s); reparseando do CSV...")
+    reparsear()
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description="Constrói o dataset de bolsas (merge incremental)")
     p.add_argument("--limite", type=int, default=None, help="processa só os N primeiros alunos")
     p.add_argument("--alunos", default=None, help="coleta só estes nomes (separados por ';')")
     p.add_argument("--forcar", action="store_true", help="re-coleta mesmo quem já está no dataset")
     p.add_argument("--reparsear", action="store_true", help="reprocessa o cache com o parser atual (sem rede)")
+    p.add_argument("--incremental", action="store_true", help="raspa só empenhos novos (sem cache) + reparseia: modo rápido diário")
     args = p.parse_args()
 
     if args.reparsear:
         reparsear()
+        return
+
+    if args.incremental:
+        incremental()
         return
 
     alvos = [x.strip() for x in args.alunos.split(";")] if args.alunos else None
