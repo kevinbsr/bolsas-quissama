@@ -59,32 +59,65 @@ def _brl(v: float) -> str:
     return "R$ " + f"{(v or 0):,.2f}".replace(",", "_").replace(".", ",").replace("_", ".")
 
 
-def _snapshot_pagos() -> dict:
-    """Mapa (nome, empenho) -> valor pago, do dataset atual em disco. Usado como
-    baseline ANTES da coleta para depois saber quem recebeu pagamento neste run."""
+def _snapshot() -> dict:
+    """Baseline do dataset antes da coleta: {(nome, empenho): {liquidado, pago}}."""
     try:
         d = json.loads(DATASET.read_text(encoding="utf-8"))
     except Exception:
         return {}
-    return {(a["nome"], m.get("empenho")): (m.get("pago") or 0)
-            for a in d.get("alunos", []) for m in a.get("mensalidades", [])}
+    return {
+        (a["nome"], m.get("empenho")): {
+            "liquidado": m.get("liquidado") or 0,
+            "pago": m.get("pago") or 0,
+        }
+        for a in d.get("alunos", []) for m in a.get("mensalidades", [])
+    }
 
 
-def _novos_pagamentos(antes: dict) -> list[tuple[str, float]]:
-    """Compara o baseline 'antes' com o dataset atual e devolve [(nome, valor_recebido)]
-    das parcelas cujo valor pago aumentou (agregado por aluno)."""
+def _diff_dataset(antes: dict) -> str:
+    """Resumo textual de todas as mudanças entre o snapshot e o dataset atual:
+    pagamentos recebidos, valores liquidados e empenhos criados."""
     try:
         d = json.loads(DATASET.read_text(encoding="utf-8"))
     except Exception:
-        return []
-    por_aluno: dict[str, float] = {}
+        return ""
+
+    pagamentos: dict[str, float] = {}
+    liquidacoes: dict[str, float] = {}
+    novos: list[str] = []
+
     for a in d.get("alunos", []):
+        nome = a["nome"]
         for m in a.get("mensalidades", []):
+            key = (nome, m.get("empenho"))
+            b = antes.get(key)
             pn = m.get("pago") or 0
-            pa = antes.get((a["nome"], m.get("empenho")), 0)
-            if pn - pa > 0.001:
-                por_aluno[a["nome"]] = por_aluno.get(a["nome"], 0) + (pn - pa)
-    return sorted(por_aluno.items(), key=lambda x: x[0])
+            ln = m.get("liquidado") or 0
+            dp = pn - (b["pago"] if b else 0)
+            dl = ln - (b["liquidado"] if b else 0)
+
+            if dp > 0.001:
+                pagamentos[nome] = pagamentos.get(nome, 0) + dp
+            elif dl > 0.001:
+                liquidacoes[nome] = liquidacoes.get(nome, 0) + dl
+            elif b is None:
+                novos.append(nome)
+
+    partes = []
+    if pagamentos:
+        total = sum(pagamentos.values())
+        linhas = "\n".join(f"  • {n} — {_brl(v)}" for n, v in sorted(pagamentos.items())[:40])
+        partes.append(f"💰 Pagamentos ({len(pagamentos)} · {_brl(total)}):\n{linhas}")
+    if liquidacoes:
+        total = sum(liquidacoes.values())
+        linhas = "\n".join(f"  • {n} — {_brl(v)}" for n, v in sorted(liquidacoes.items())[:40])
+        partes.append(f"📋 Em liquidação ({len(liquidacoes)} · {_brl(total)}):\n{linhas}")
+    if novos:
+        nomes_u = sorted(set(novos))
+        partes.append(f"🆕 Empenhos novos ({len(novos)} em {len(nomes_u)} aluno(s)):\n" +
+                      "\n".join(f"  • {n}" for n in nomes_u[:40]))
+
+    return "\n\n".join(partes)
 
 
 def download_csv(ano: str, saida: Path) -> None:
@@ -243,18 +276,15 @@ def main() -> None:
     try:
         if not args.skip_push:
             git_sync()
-        # baseline ANTES da coleta (estado que a produção tem) p/ saber quem recebeu agora
-        pagos_antes = _snapshot_pagos()
+        snap = _snapshot()
         download_csv(args.ano, csv_saida)
         run_coleta(full=args.full)
         status = git_commit_push(args.ano, args.skip_push)
 
         corpo = f"✅ Run OK ({args.ano}, {rotulo}) — {status}.\nDataset: {_data_atualizacao()}."
-        pagos = _novos_pagamentos(pagos_antes)
-        if pagos:
-            total = sum(v for _, v in pagos)
-            linhas = "\n".join(f"• {nome} — {_brl(v)}" for nome, v in pagos[:40])
-            corpo += f"\n\n💰 Receberam pagamento neste run ({len(pagos)} · {_brl(total)}):\n{linhas}"
+        diff = _diff_dataset(snap)
+        if diff:
+            corpo += f"\n\n{diff}"
         notificar(corpo, titulo="Bolsas Quissama - scraper OK", tags="white_check_mark")
     except SystemExit as e:
         # falhas controladas (sys.exit("mensagem")) — e.code carrega a mensagem
