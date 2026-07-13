@@ -220,5 +220,6 @@ def api_resumo_geral():
 
 
 @app.get("/api/saude")
+@app.head("/api/saude")
 def saude():
     return {"status": "ok", "fonte": "bolsas"}
