@@ -338,6 +338,19 @@ def detalhe_cacheado(pg, numero: str, ano: str, url: str) -> dict:
 FONTE_NOME = "Portal da Transparência de Quissamã"
 
 
+def _precisa_re_raspar(nome: str, nomes_todos: list[str], existente: dict) -> bool:
+    """Em modo --forcar: True se o aluno não está no dataset ou tem empenho sem cache.
+    Evita bater no portal quando o cache já está completo (ex.: portal offline)."""
+    if not existente.get("mensalidades"):
+        return True  # aluno totalmente novo
+    base = buscar(nome, nomes_todos)
+    for r in base["registros"]:
+        num = r["empenho"].lstrip("0") or "0"
+        if not (CACHE / f"{r['ano']}-{num}.json").exists():
+            return True  # empenho novo sem cache
+    return False
+
+
 def _carregar_existente() -> dict:
     """Dataset já gravado, indexado por nome (para merge/resumo incremental)."""
     if SAIDA.exists():
@@ -468,23 +481,33 @@ def coletar(limite: int | None = None, alvos: list[str] | None = None, forcar: b
 
     por_nome = _carregar_existente()
     print(f"Dataset existente: {len(por_nome)} alunos (merge incremental)")
-    with sync_playwright() as pw:
-        try:
-            b = pw.chromium.launch(executable_path=CHROMIUM, headless=True, args=["--no-sandbox"])
-        except Exception:
-            print(f"[!] Aviso: Não foi possível iniciar o Chromium em '{CHROMIUM}'. Tentando padrão do Playwright...")
-            b = pw.chromium.launch(headless=True, args=["--no-sandbox"])
-        pg = b.new_page()
-        nomes_todos = [x["nome_canonico"] for x in alunos]
-        for a in alunos:
-            nome = a["nome_canonico"]
-            if not forcar and por_nome.get(nome, {}).get("mensalidades"):
-                print(f"  {nome}: já no dataset, pulando")
-                continue
-            por_nome[nome] = coletar_aluno(pg, a, nomes_todos)
-            print(f"  {nome}: {len(por_nome[nome]['mensalidades'])} mensalidades de bolsa", flush=True)
-            _salvar(por_nome)  # incremental + merge (não sobrescreve quem já existe)
-        b.close()
+    nomes_todos = [x["nome_canonico"] for x in alunos]
+
+    if forcar:
+        alunos_scrape = [a for a in alunos
+                         if _precisa_re_raspar(a["nome_canonico"], nomes_todos, por_nome.get(a["nome_canonico"], {}))]
+        n_pular = len(alunos) - len(alunos_scrape)
+        if n_pular:
+            print(f"  {n_pular} aluno(s) com cache completo, pulando re-scraping (--forcar)")
+        alunos = alunos_scrape
+
+    if alunos:
+        with sync_playwright() as pw:
+            try:
+                b = pw.chromium.launch(executable_path=CHROMIUM, headless=True, args=["--no-sandbox"])
+            except Exception:
+                print(f"[!] Aviso: Não foi possível iniciar o Chromium em '{CHROMIUM}'. Tentando padrão do Playwright...")
+                b = pw.chromium.launch(headless=True, args=["--no-sandbox"])
+            pg = b.new_page()
+            for a in alunos:
+                nome = a["nome_canonico"]
+                if not forcar and por_nome.get(nome, {}).get("mensalidades"):
+                    print(f"  {nome}: já no dataset, pulando")
+                    continue
+                por_nome[nome] = coletar_aluno(pg, a, nomes_todos)
+                print(f"  {nome}: {len(por_nome[nome]['mensalidades'])} mensalidades de bolsa", flush=True)
+                _salvar(por_nome)
+            b.close()
 
     return {"fonte": FONTE_NOME, "url": URL,
             "alunos": sorted(por_nome.values(), key=lambda a: a["nome"])}
@@ -656,6 +679,9 @@ def main() -> None:
 
     alvos = [x.strip() for x in args.alunos.split(";")] if args.alunos else None
     dados = coletar(args.limite, alvos, args.forcar)
+    if args.forcar:
+        # Atualiza valores do CSV fresco para alunos que foram pulados no scraping
+        reparsear()
     n = len(dados["alunos"])
     tot = sum(a["resumo"]["qtd"] for a in dados["alunos"])
     print(f"\n{n} alunos | {tot} mensalidades | gravado em {SAIDA}")
