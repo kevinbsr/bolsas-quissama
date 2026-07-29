@@ -1,7 +1,7 @@
 {
   "fonte": "Portal da Transparência de Quissamã",
   "url": "https://webapp1-quissama.cidade360.cloud/pronimtb/index.asp?acao=3&item=11",
-  "data_atualizacao": "29/07/2026 08:05",
+  "data_atualizacao": "29/07/2026 14:01",
   "alunos": [
     {
       "nome": "AMANDA LIMA CRUZ",
@@ -26730,6 +26730,28 @@
       "valor_mensal": "R$ 8.490,06",
       "mensalidades": [
         {
+          "empenho": "3957",
+          "ano": "2026",
+          "mes_referencia": "",
+          "meses": [
+            "2025-08",
+            "2025-09",
+            "2025-10",
+            "2025-11",
+            "2025-12"
+          ],
+          "tipo": "acordo",
+          "parcela": "3",
+          "empenhado": 4547.93,
+          "liquidado": 0.0,
+          "pago": 0.0,
+          "a_pagar": 0.0,
+          "data_empenho": "27/07/2026",
+          "data_liquidacao": null,
+          "data_pagamento": null,
+          "descricao": "VALOR REF. AO RESSARCIMENTO DE MENSALIDADES PAGAS DE BOLSAS DE ESTUDO - ENSINO SUPERIOR - CONFORME LEI MUNICIPAL Nº 2042 DE 20 DE MAIO DE 2021,RELATIVO AO PAGAMENTO DO ACORDO 3ª PARCELA - Mensalidade dos meses de AGOSTO A DEZEMBRO de 2025."
+        },
+        {
           "empenho": "3496",
           "ano": "2026",
           "mes_referencia": "",
@@ -27304,8 +27326,8 @@
         }
       ],
       "resumo": {
-        "qtd": 27,
-        "empenhado": 221186.91,
+        "qtd": 28,
+        "empenhado": 225734.84,
         "liquidado": 221186.91,
         "pago": 203683.34,
         "a_pagar": 17503.57
