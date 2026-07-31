@@ -1,7 +1,7 @@
 {
   "fonte": "Portal da Transparência de Quissamã",
   "url": "https://webapp1-quissama.cidade360.cloud/pronimtb/index.asp?acao=3&item=11",
-  "data_atualizacao": "29/07/2026 14:01",
+  "data_atualizacao": "31/07/2026 14:04",
   "alunos": [
     {
       "nome": "AMANDA LIMA CRUZ",
@@ -7303,6 +7303,42 @@
       "valor_mensal": "R$ 1.280,21",
       "mensalidades": [
         {
+          "empenho": "4133",
+          "ano": "2026",
+          "mes_referencia": "2026-01",
+          "meses": [
+            "2026-01"
+          ],
+          "tipo": "mensalidade",
+          "parcela": null,
+          "empenhado": 1238.61,
+          "liquidado": 0.0,
+          "pago": 0.0,
+          "a_pagar": 0.0,
+          "data_empenho": "30/07/2026",
+          "data_liquidacao": null,
+          "data_pagamento": null,
+          "descricao": "VALOR REF. AO RESSARCIMENTO DE MENSALIDADES PAGAS DE BOLSAS DE ESTUDO ENSINO SUPERIOR. ENFERMAGEM - CONFORME LEI MUNICIPAL Nº 2042 DE 20 DE MAIO DE 2021,RELATIVO AO PAGAMENTO DA MENSALIDADE DO MÊS DE JANEIRO DE 2026."
+        },
+        {
+          "empenho": "4131",
+          "ano": "2026",
+          "mes_referencia": "2026-02",
+          "meses": [
+            "2026-02"
+          ],
+          "tipo": "mensalidade",
+          "parcela": null,
+          "empenhado": 1238.61,
+          "liquidado": 0.0,
+          "pago": 0.0,
+          "a_pagar": 0.0,
+          "data_empenho": "30/07/2026",
+          "data_liquidacao": null,
+          "data_pagamento": null,
+          "descricao": "VALOR REF. AO RESSARCIMENTO DE MENSALIDADES PAGAS DE BOLSAS DE ESTUDO ENSINO SUPERIOR. CONFORME LEI MUNICIPAL Nº 2042 DE 20 DE MAIO DE 2021,RELATIVO AO PAGAMENTO DA MENSALIDADE DO MÊS DE FEVEREIRO DE 2026."
+        },
+        {
           "empenho": "3912",
           "ano": "2026",
           "mes_referencia": "2026-03",
@@ -7773,8 +7809,8 @@
         }
       ],
       "resumo": {
-        "qtd": 26,
-        "empenhado": 27919.13,
+        "qtd": 28,
+        "empenhado": 30396.35,
         "liquidado": 26680.52,
         "pago": 26680.52,
         "a_pagar": 0.0
@@ -31373,6 +31409,24 @@
       "valor_mensal": "R$ 460,00",
       "mensalidades": [
         {
+          "empenho": "4019",
+          "ano": "2026",
+          "mes_referencia": "2026-01",
+          "meses": [
+            "2026-01"
+          ],
+          "tipo": "mensalidade",
+          "parcela": null,
+          "empenhado": 556.75,
+          "liquidado": 0.0,
+          "pago": 0.0,
+          "a_pagar": 0.0,
+          "data_empenho": "29/07/2026",
+          "data_liquidacao": null,
+          "data_pagamento": null,
+          "descricao": "VALOR REF. AO RESSARCIMENTO DE MENSALIDADES PAGAS DE BOLSAS DE ESTUDO ENSINO SUPERIOR - EDUCAÇÃO FÍSICA - CONFORME LEI MUNICIPAL Nº 2042 DE 20 DE MAIO DE 2021,RELATIVO AO PAGAMENTO DA MENSALIDADE DO MÊS DE JANEIRO DE 2026."
+        },
+        {
           "empenho": "3284",
           "ano": "2026",
           "mes_referencia": "",
@@ -31735,8 +31789,8 @@
         }
       ],
       "resumo": {
-        "qtd": 20,
-        "empenhado": 8950.58,
+        "qtd": 21,
+        "empenhado": 9507.33,
         "liquidado": 8950.58,
         "pago": 7646.84,
         "a_pagar": 1303.74
