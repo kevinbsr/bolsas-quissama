@@ -16,12 +16,15 @@ Wants=network-online.target
 [Service]
 Type=exec
 WorkingDirectory=/app/bolsas-quissama
-# NTFY_URL aqui faz os runs disparados pelo painel notificarem igual aos do cron.
-# BQ_PAINEL_HOST=100.x.y.z restringe o bind ao endereço da Tailscale.
-EnvironmentFile=-/etc/default/bolsas-painel
+# Ordem importa: o systemd processa Environment= e EnvironmentFile= na ordem em
+# que aparecem, e o último vence. Os padrões vêm PRIMEIRO para que o arquivo de
+# configuração consiga sobrepô-los — invertido, o bind ficaria preso em 127.0.0.1.
 Environment=BQ_PAINEL_HOST=127.0.0.1
 Environment=BQ_PAINEL_PORT=8080
 Environment=PYTHONUNBUFFERED=1
+# NTFY_URL aqui faz os runs disparados pelo painel notificarem igual aos do cron.
+# BQ_PAINEL_HOST=100.x.y.z restringe o bind ao endereço da Tailscale.
+EnvironmentFile=-/etc/default/bolsas-painel
 ExecStart=/app/bolsas-quissama/venv/bin/python -m uvicorn admin.main:app \
     --host ${BQ_PAINEL_HOST} --port ${BQ_PAINEL_PORT} --workers 1
 Restart=on-failure
