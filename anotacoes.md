@@ -94,3 +94,83 @@ Para lidar com quedas de energia e oscilações de internet, configuramos janela
 
 *   **Hospedagem:** FastAPI rodando no **Render**. O auto-deploy automático é acionado em cada push na branch `master` do GitHub.
 *   **Keep-Alive (UptimeRobot):** Como o Render suspende instâncias no plano gratuito por inatividade, um monitor HTTP no **UptimeRobot** dispara requisições a cada 5 minutos para `https://bolsasquissama.com.br` mantendo o site ativo e com respostas rápidas para os cidadãos.
+
+---
+
+## 7. Painel Administrativo (`admin/`)
+
+Interface web para operar o pipeline sem SSH. Roda **no container de coleta**, não no
+Render: precisa do roster, do cache de detalhes, do git e do Playwright — nada disso
+existe (nem cabe) no free tier.
+
+### Segurança: a rede é a autenticação
+
+O painel **não tem login**, por decisão explícita. Ele só deve escutar no endereço da
+Tailscale. Nunca encaminhe a porta 8080 no roteador nem exponha o container na internet:
+quem alcança o painel pode disparar commits e push para a `master` — ou seja, publicar.
+
+### Instalação no container
+
+```bash
+ssh bolsas-scraper
+cd /app/bolsas-quissama && git pull
+
+# Nenhuma dependência nova: o painel usa só fastapi + uvicorn, que o venv já tem.
+# (Formulários urlencoded e upload por corpo cru, para não precisar de python-multipart.)
+
+# Descubra o IP da Tailscale e trave o bind nele:
+tailscale ip -4
+echo 'BQ_PAINEL_HOST=100.x.y.z' > /etc/default/bolsas-painel
+echo 'NTFY_URL=https://ntfy.sh/bolsas-quissama-notify' >> /etc/default/bolsas-painel
+
+cp infra/bolsas-painel.service /etc/systemd/system/
+systemctl daemon-reload && systemctl enable --now bolsas-painel
+systemctl status bolsas-painel
+```
+
+Acesso: `http://100.x.y.z:8080` de qualquer dispositivo na sua Tailscale.
+
+> `--workers 1` é obrigatório na unit: o estado do run em andamento (processo, buffer de
+> log, trava) mora na memória do processo. Com dois workers, metade das requisições de log
+> cairia num worker que não sabe do run.
+
+### As quatro telas
+
+| Tela | O que resolve |
+|---|---|
+| **Visão geral** | Dataset local vs. o que a produção está servindo, atraso do git, disco, cache, crontab, último run. Alertas só do que exige ação. |
+| **Pipeline** | Dispara os 6 modos com log ao vivo, cancelamento e histórico persistente em SQLite (`data/admin/runs.db`). |
+| **Roster** | Sobe o CSV novo (com backup do anterior), mostra **quem não casou com o portal** e permite corrigir a grafia na hora. Nunca exibe a coluna Endereço. |
+| **Ajustes** | Correções manuais de `mes_referencia`/`tipo`/exclusão por empenho, e o `ano_roster`. |
+
+### Convivência com o cron
+
+O painel segura o **mesmo** `flock /tmp/scraper.lock` que o crontab usa. Disparar pela tela
+enquanto o cron roda (ou o contrário) corromperia o dataset, que é gravado
+incrementalmente a cada aluno — então quem chega depois é **recusado**, não enfileirado:
+um `--forcar` dura horas e uma fila só esconderia o conflito.
+
+### `app/dados/ajustes.json` — as correções manuais
+
+Nem todo empenho é classificável por regex; o texto livre do portal varia. Em vez de
+espremer o parser para cada caso isolado, o operador corrige o caso pela mão.
+
+Aplicado dentro de `coletar_bolsas._salvar()` — ponto único por onde **todo** modo do
+builder grava o dataset. É isso que faz a correção sobreviver a um `--forcar`; aplicá-la
+em qualquer outro lugar significaria que o próximo run desfaz o conserto.
+
+Só campos de **interpretação** são ajustáveis (`mes_referencia`, `meses`, `tipo`,
+`parcela`, `excluir`, e dados cadastrais do aluno). Valores e datas vêm do CSV oficial e
+**não** são sobrescritos — reescrevê-los falsearia a fonte.
+
+O arquivo é **versionado no git** de propósito: não tem dado pessoal (número de empenho,
+mês, e o nome canônico que já é público no dataset) e, ficando no repositório, sobrevive a
+uma reconstrução do container. `atualizar_dados.py` o inclui no commit automático, senão as
+correções ficariam presas no container e nunca chegariam à produção.
+
+### `ano_roster` saiu do código
+
+Antes era a constante `ANO_ROSTER` em `app/bolsa_store.py`, e virar o ano exigia editar
+Python e fazer deploy. Agora o builder grava `ano_roster` no próprio dataset a partir dos
+ajustes, e `bolsa_store` lê de lá — com a constante como padrão para quando não houver nada
+configurado.

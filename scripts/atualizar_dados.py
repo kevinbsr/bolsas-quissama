@@ -230,8 +230,11 @@ def git_commit_push(ano: str, skip_push: bool) -> str:
     print("[*] Estado do git:")
     print(res.stdout)
 
-    # Verifica se os arquivos de dados foram modificados
-    arquivos_interesse = [f"movimentacao-diaria/{ano}.csv", "app/dados/bolsas_publicas.json"]
+    # Verifica se os arquivos de dados foram modificados. `ajustes.json` entra aqui
+    # porque as correções manuais feitas no painel só chegam à produção pelo git —
+    # sem isso elas ficariam presas no container.
+    arquivos_interesse = [f"movimentacao-diaria/{ano}.csv", "app/dados/bolsas_publicas.json",
+                          "app/dados/ajustes.json"]
     alterados = []
     for linha in res.stdout.splitlines():
         # formato do git status --porcelain: ' M caminho' ou '?? caminho'

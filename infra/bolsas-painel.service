@@ -1,0 +1,35 @@
+# Painel administrativo do Bolsas Quissamã (LXC 102 "scraper-bolsas").
+#
+#   scp infra/bolsas-painel.service bolsas-scraper:/etc/systemd/system/
+#   ssh bolsas-scraper 'systemctl daemon-reload && systemctl enable --now bolsas-painel'
+#
+# O painel NÃO tem autenticação: a fronteira é a rede. Mantenha o bind restrito
+# ao endereço da Tailscale (BQ_PAINEL_HOST em /etc/default/bolsas-painel) e nunca
+# encaminhe esta porta no roteador.
+
+[Unit]
+Description=Painel administrativo Bolsas Quissama
+Documentation=file:///app/bolsas-quissama/anotacoes.md
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=exec
+WorkingDirectory=/app/bolsas-quissama
+# NTFY_URL aqui faz os runs disparados pelo painel notificarem igual aos do cron.
+# BQ_PAINEL_HOST=100.x.y.z restringe o bind ao endereço da Tailscale.
+EnvironmentFile=-/etc/default/bolsas-painel
+Environment=BQ_PAINEL_HOST=127.0.0.1
+Environment=BQ_PAINEL_PORT=8080
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/app/bolsas-quissama/venv/bin/python -m uvicorn admin.main:app \
+    --host ${BQ_PAINEL_HOST} --port ${BQ_PAINEL_PORT} --workers 1
+Restart=on-failure
+RestartSec=5s
+
+# --workers 1 é obrigatório: o estado do run em andamento (processo, buffer de
+# log, trava) vive na memória do processo. Com dois workers, metade das
+# requisições de log cairia num worker que não sabe do run.
+
+[Install]
+WantedBy=multi-user.target

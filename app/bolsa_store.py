@@ -19,7 +19,8 @@ DATASET = Path(__file__).resolve().parent / "dados" / "bolsas_publicas.json"
 _STOP = {"DA", "DE", "DO", "DAS", "DOS", "E"}
 
 # Ano do roster oficial usado para montar o dataset (lista de bolsistas ativos).
-# Atualizar ao reprocessar com o roster de um novo ano.
+# Serve de padrão: se o dataset trouxer `ano_roster` (definido pelo painel admin),
+# ele vence — assim virar o ano não exige editar Python nem um novo deploy.
 ANO_ROSTER = 2026
 
 
@@ -203,7 +204,7 @@ def resumo_geral() -> dict:
     }
 
     return {
-        "ano_roster": ANO_ROSTER,
+        "ano_roster": dados.get("ano_roster") or ANO_ROSTER,
         "data_atualizacao": dados.get("data_atualizacao", ""),
         "total_alunos": len(alunos),
         "total_empenhado": round(total_emp, 2),

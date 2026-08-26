@@ -21,6 +21,7 @@ Uso:
 from __future__ import annotations
 
 import argparse
+import copy
 import csv
 import difflib
 import json
@@ -39,6 +40,7 @@ sys.path.insert(0, str(BASE))
 from app.csv_loader import _df_completo, _norm, _tokens, buscar  # noqa: E402
 ROSTER = BASE / "relacao-bolsistas_padronizado.csv"
 SAIDA = BASE / "app" / "dados" / "bolsas_publicas.json"
+AJUSTES = BASE / "app" / "dados" / "ajustes.json"
 CACHE = BASE / "data" / "cache" / "detalhe"
 HOST = "https://webapp1-quissama.cidade360.cloud"
 URL = HOST + "/pronimtb/index.asp?acao=3&item=11"
@@ -362,10 +364,33 @@ def _carregar_existente() -> dict:
     return {}
 
 
+def _aplicar_ajustes(por_nome: dict) -> tuple[dict, int | None]:
+    """Sobrepõe as correções manuais de app/dados/ajustes.json ao que vai ser gravado.
+
+    Aqui é o único ponto por onde TODO modo do builder grava o dataset, então
+    aplicar neste lugar é o que faz a correção sobreviver a um --forcar. Trabalha
+    sobre uma cópia: mutar `por_nome` sujaria o estado do run em andamento (o
+    laço de coleta continua usando esse dicionário).
+    """
+    try:
+        from admin.ajustes import aplicar, carregar
+    except ImportError:
+        return por_nome, None   # checkout sem o painel: builder segue normal
+    d = carregar(AJUSTES)
+    if not (d.get("mensalidades") or d.get("alunos")):
+        return por_nome, d.get("ano_roster")
+    copia = copy.deepcopy(por_nome)
+    n = aplicar(copia, d)
+    if n:
+        print(f"[ajustes] {n} ajuste(s) manual(is) aplicado(s) ao dataset")
+    return copia, d.get("ano_roster")
+
+
 def _salvar(por_nome: dict) -> None:
     SAIDA.parent.mkdir(parents=True, exist_ok=True)
-    alunos = sorted(por_nome.values(), key=lambda a: a["nome"])
-    
+    ajustado, ano_roster = _aplicar_ajustes(por_nome)
+    alunos = sorted(ajustado.values(), key=lambda a: a["nome"])
+
     # Preserva a data de atualização se os dados não mudaram
     data_atualizacao = None
     if SAIDA.exists():
@@ -375,17 +400,20 @@ def _salvar(por_nome: dict) -> None:
                 data_atualizacao = d_antigo.get("data_atualizacao")
         except Exception:
             pass
-            
+
     if not data_atualizacao:
         import datetime
         data_atualizacao = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
-        
-    SAIDA.write_text(json.dumps({
+
+    saida = {
         "fonte": FONTE_NOME,
         "url": URL,
         "data_atualizacao": data_atualizacao,
-        "alunos": alunos
-    }, ensure_ascii=False, indent=2), encoding="utf-8")
+        "alunos": alunos,
+    }
+    if ano_roster:
+        saida["ano_roster"] = ano_roster
+    SAIDA.write_text(json.dumps(saida, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def coletar_aluno(pg, a: dict, outros: list[str] | None = None) -> dict:

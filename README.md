@@ -158,6 +158,16 @@ Quando a prefeitura divulga uma nova lista (novo edital/ano):
 
 ---
 
+## Painel de operação
+
+Para não depender de SSH no dia a dia, o home server roda também um painel web
+(`admin/`) que dispara o pipeline com log ao vivo, mostra saúde do sistema, gerencia o
+roster e registra correções manuais de classificação. Fica **só na rede privada**
+(Tailscale) e não tem autenticação — a rede é a fronteira. Detalhes de instalação e
+operação em [`anotacoes.md`](anotacoes.md#7-painel-administrativo-admin).
+
+---
+
 ## Automação
 
 Em produção, o pipeline roda num container LXC (home server) via cron:
@@ -181,11 +191,13 @@ app/main.py                      FastAPI: rotas, SSR, SEO
 app/bolsa_store.py               loader do dataset em runtime (sem pandas)
 app/csv_loader.py                parsing dos CSVs de Movimentação Diária (só no builder)
 app/dados/bolsas_publicas.json   dataset público servido pelo app  (versionado)
+app/dados/ajustes.json           correções manuais aplicadas ao dataset (versionado)
 scripts/coletar_bolsas.py        builder: roster + portal → dataset
 scripts/atualizar_dados.py       pipeline ponta a ponta (download → coleta → push)
 movimentacao-diaria/*.csv        export bruto do portal (entrada do builder)
 static/ · templates/             interface mobile-first (Chart.js)
-infra/                           Terraform do home server de coleta
+admin/                           painel de operação (roda no home server, rede privada)
+infra/                           Terraform do home server + unit do painel
 render.yaml                      configuração de deploy (Render)
 ```
 
