@@ -1,7 +1,7 @@
 {
   "fonte": "Portal da Transparência de Quissamã",
   "url": "https://webapp1-quissama.cidade360.cloud/pronimtb/index.asp?acao=3&item=11",
-  "data_atualizacao": "27/08/2026 20:06",
+  "data_atualizacao": "31/08/2026 20:01",
   "alunos": [
     {
       "nome": "AMANDA LIMA CRUZ",
@@ -7610,6 +7610,24 @@
       "valor_mensal": "R$ 1.280,21",
       "mensalidades": [
         {
+          "empenho": "4725",
+          "ano": "2026",
+          "mes_referencia": "2025-12",
+          "meses": [
+            "2025-12"
+          ],
+          "tipo": "mensalidade",
+          "parcela": null,
+          "empenhado": 1280.21,
+          "liquidado": 0.0,
+          "pago": 0.0,
+          "a_pagar": 0.0,
+          "data_empenho": "28/08/2026",
+          "data_liquidacao": null,
+          "data_pagamento": null,
+          "descricao": "VALOR REF. AO RESSARCIMENTO DE MENSALIDADES PAGAS DE BOLSAS DE ESTUDO ENSINO SUPERIOR - ENFERMAGEM - CONFORME LEI MUNICIPAL Nº 2042 DE 20 DE MAIO DE 2021,RELATIVO AO PAGAMENTO DA MENSALIDADE DO MÊS DE DEZEMBRO DE 2025."
+        },
+        {
           "empenho": "4133",
           "ano": "2026",
           "mes_referencia": "2026-01",
@@ -8116,8 +8134,8 @@
         }
       ],
       "resumo": {
-        "qtd": 28,
-        "empenhado": 30396.35,
+        "qtd": 29,
+        "empenhado": 31676.56,
         "liquidado": 30396.35,
         "pago": 29157.74,
         "a_pagar": 1238.61
@@ -45950,12 +45968,12 @@
           "tipo": "mensalidade",
           "parcela": null,
           "empenhado": 2260.09,
-          "liquidado": 0.0,
-          "pago": 0.0,
+          "liquidado": 2260.09,
+          "pago": 2260.09,
           "a_pagar": 0.0,
           "data_empenho": "27/08/2026",
-          "data_liquidacao": null,
-          "data_pagamento": null,
+          "data_liquidacao": "28/08/2026",
+          "data_pagamento": "31/08/2026",
           "descricao": "VALOR REF. AO RESSARCIMENTO DE MENSALIDADES PAGAS DE BOLSAS DE ESTUDO ENSINO SUPERIOR - ODONTOLOGIA - CONFORME LEI MUNICIPAL Nº 2042 DE 20 DE MAIO DE 2021,RELATIVO AO PAGAMENTO DA MENSALIDADE DO MÊS DE MARÇO DE 2026."
         },
         {
@@ -45968,12 +45986,12 @@
           "tipo": "mensalidade",
           "parcela": null,
           "empenhado": 2260.09,
-          "liquidado": 0.0,
-          "pago": 0.0,
+          "liquidado": 2260.09,
+          "pago": 2260.09,
           "a_pagar": 0.0,
           "data_empenho": "27/08/2026",
-          "data_liquidacao": null,
-          "data_pagamento": null,
+          "data_liquidacao": "28/08/2026",
+          "data_pagamento": "31/08/2026",
           "descricao": "VALOR REF. AO RESSARCIMENTO DE MENSALIDADES PAGAS DE BOLSAS DE ESTUDO ENSINO SUPERIOR - ODONTOLOGIA - CONFORME LEI MUNICIPAL Nº 2042 DE 20 DE MAIO DE 2021,RELATIVO AO PAGAMENTO DA MENSALIDADE DO MÊS DE ABRIL DE 2026."
         },
         {
@@ -46394,8 +46412,8 @@
       "resumo": {
         "qtd": 25,
         "empenhado": 47978.84,
-        "liquidado": 43458.66,
-        "pago": 43458.66,
+        "liquidado": 47978.84,
+        "pago": 47978.84,
         "a_pagar": 0.0
       }
     },
