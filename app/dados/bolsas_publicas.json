@@ -1,7 +1,7 @@
 {
   "fonte": "Portal da Transparência de Quissamã",
   "url": "https://webapp1-quissama.cidade360.cloud/pronimtb/index.asp?acao=3&item=11",
-  "data_atualizacao": "02/09/2026 03:01",
+  "data_atualizacao": "02/09/2026 20:02",
   "alunos": [
     {
       "nome": "AMANDA LIMA CRUZ",
@@ -4543,11 +4543,11 @@
           "tipo": "mensalidade",
           "parcela": null,
           "empenhado": 914.98,
-          "liquidado": 0.0,
+          "liquidado": 914.98,
           "pago": 0.0,
-          "a_pagar": 0.0,
+          "a_pagar": 914.98,
           "data_empenho": "03/08/2026",
-          "data_liquidacao": null,
+          "data_liquidacao": "02/09/2026",
           "data_pagamento": null,
           "descricao": "VALOR REF. AO RESSARCIMENTO DE MENSALIDADES PAGAS DE BOLSAS DE ESTUDO ENSINO SUPERIOR - DIREITO - CONFORME LEI MUNICIPAL Nº 2042 DE 20 DE MAIO DE 2021,RELATIVO AO PAGAMENTO DA MENSALIDADE DO MÊS DE JUNHO DE 2023."
         },
@@ -5115,9 +5115,9 @@
       "resumo": {
         "qtd": 32,
         "empenhado": 26094.76,
-        "liquidado": 25179.78,
+        "liquidado": 26094.76,
         "pago": 20604.88,
-        "a_pagar": 4574.9
+        "a_pagar": 5489.88
       }
     },
     {
@@ -5138,11 +5138,11 @@
           "tipo": "mensalidade",
           "parcela": null,
           "empenhado": 7289.49,
-          "liquidado": 0.0,
+          "liquidado": 7289.49,
           "pago": 0.0,
-          "a_pagar": 0.0,
+          "a_pagar": 7289.49,
           "data_empenho": "04/08/2026",
-          "data_liquidacao": null,
+          "data_liquidacao": "02/09/2026",
           "data_pagamento": null,
           "descricao": "VALOR REF. AO RESSARCIMENTO DE MENSALIDADES PAGAS DE BOLSAS DE ESTUDO ENSINO SUPERIOR - MEDICINA - CONFORME LEI MUNICIPAL Nº 2042 DE 20 DE MAIO DE 2021,RELATIVO AO PAGAMENTO DA MENSALIDADE DO MÊS DE JUNHO DE 2026."
         },
@@ -5690,9 +5690,9 @@
       "resumo": {
         "qtd": 31,
         "empenhado": 230477.8,
-        "liquidado": 223188.31,
+        "liquidado": 230477.8,
         "pago": 194030.35,
-        "a_pagar": 29157.96
+        "a_pagar": 36447.45
       }
     },
     {
@@ -6483,11 +6483,11 @@
           "tipo": "mensalidade",
           "parcela": null,
           "empenhado": 218.04,
-          "liquidado": 0.0,
+          "liquidado": 218.04,
           "pago": 0.0,
-          "a_pagar": 0.0,
+          "a_pagar": 218.04,
           "data_empenho": "03/08/2026",
-          "data_liquidacao": null,
+          "data_liquidacao": "02/09/2026",
           "data_pagamento": null,
           "descricao": "VALOR REF. AO RESSARCIMENTO DE MENSALIDADES PAGAS DE BOLSAS DE ESTUDO ENSINO SUPERIOR - DIREITO - CONFORME LEI MUNICIPAL Nº 2042 DE 20 DE MAIO DE 2021,RELATIVO AO PAGAMENTO DA MENSALIDADE DO MÊS DE MAIO DE 2026."
         },
@@ -7001,9 +7001,9 @@
       "resumo": {
         "qtd": 31,
         "empenhado": 18828.69,
-        "liquidado": 18247.25,
+        "liquidado": 18465.29,
         "pago": 17375.09,
-        "a_pagar": 872.16
+        "a_pagar": 1090.2
       }
     },
     {
@@ -17579,6 +17579,24 @@
       "valor_mensal": "R$ 403,70",
       "mensalidades": [
         {
+          "empenho": "4799",
+          "ano": "2026",
+          "mes_referencia": "2026-05",
+          "meses": [
+            "2026-05"
+          ],
+          "tipo": "mensalidade",
+          "parcela": null,
+          "empenhado": 316.61,
+          "liquidado": 0.0,
+          "pago": 0.0,
+          "a_pagar": 0.0,
+          "data_empenho": "31/08/2026",
+          "data_liquidacao": null,
+          "data_pagamento": null,
+          "descricao": "VALOR REF. AO RESSARCIMENTO DE MENSALIDADES PAGAS DE BOLSAS DE ESTUDO ENSINO SUPERIOR - ENFERMAGEM. CONFORME LEI MUNICIPAL Nº 2042 DE 20 DE MAIO DE 2021,RELATIVO AO PAGAMENTO DA MENSALIDADE DO MÊS DE MAIO DE 2026."
+        },
+        {
           "empenho": "4568",
           "ano": "2026",
           "mes_referencia": "2026-04",
@@ -17595,24 +17613,6 @@
           "data_liquidacao": null,
           "data_pagamento": null,
           "descricao": "VALOR REF. AO RESSARCIMENTO DE MENSALIDADES PAGAS DE BOLSAS DE ESTUDO ENSINO SUPERIOR - ENFERMAGEM - CONFORME LEI MUNICIPAL Nº 2042 DE 20 DE MAIO DE 2021,RELATIVO AO PAGAMENTO DA MENSALIDADE DO MÊS DE ABRIL DE 2026."
-        },
-        {
-          "empenho": "4561",
-          "ano": "2026",
-          "mes_referencia": "2026-05",
-          "meses": [
-            "2026-05"
-          ],
-          "tipo": "mensalidade",
-          "parcela": null,
-          "empenhado": 266.98,
-          "liquidado": 0.0,
-          "pago": 0.0,
-          "a_pagar": 0.0,
-          "data_empenho": "25/08/2026",
-          "data_liquidacao": null,
-          "data_pagamento": null,
-          "descricao": "VALOR REF. AO RESSARCIMENTO DE MENSALIDADES PAGAS DE BOLSAS DE ESTUDO ENSINO SUPERIOR - ENFERMAGEM - CONFORME LEI MUNICIPAL Nº 2042 DE 20 DE MAIO DE 2021,RELATIVO AO PAGAMENTO DA MENSALIDADE DO MÊS DE MAIO DE 2026."
         },
         {
           "empenho": "4551",
@@ -18124,7 +18124,7 @@
       ],
       "resumo": {
         "qtd": 30,
-        "empenhado": 15059.83,
+        "empenhado": 15109.46,
         "liquidado": 13843.02,
         "pago": 13593.85,
         "a_pagar": 249.17
@@ -22094,11 +22094,11 @@
           "tipo": "mensalidade",
           "parcela": null,
           "empenhado": 1206.38,
-          "liquidado": 0.0,
+          "liquidado": 1206.38,
           "pago": 0.0,
-          "a_pagar": 0.0,
+          "a_pagar": 1206.38,
           "data_empenho": "03/08/2026",
-          "data_liquidacao": null,
+          "data_liquidacao": "02/09/2026",
           "data_pagamento": null,
           "descricao": "VALOR REF. AO RESSARCIMENTO DE MENSALIDADES PAGAS DE BOLSAS DE ESTUDO ENSINO SUPERIOR - PSICOLOGIA - CONFORME LEI MUNICIPAL Nº 2042 DE 20 DE MAIO DE 2021,RELATIVO AO PAGAMENTO DA MENSALIDADE DO MÊS DE MAIO DE 2026."
         },
@@ -22685,9 +22685,9 @@
       "resumo": {
         "qtd": 34,
         "empenhado": 38007.88,
-        "liquidado": 35461.08,
+        "liquidado": 36667.46,
         "pago": 29645.48,
-        "a_pagar": 5815.6
+        "a_pagar": 7021.98
       }
     },
     {
@@ -36383,11 +36383,11 @@
           "tipo": "mensalidade",
           "parcela": null,
           "empenhado": 561.52,
-          "liquidado": 0.0,
+          "liquidado": 561.52,
           "pago": 0.0,
-          "a_pagar": 0.0,
+          "a_pagar": 561.52,
           "data_empenho": "04/08/2026",
-          "data_liquidacao": null,
+          "data_liquidacao": "02/09/2026",
           "data_pagamento": null,
           "descricao": "VALOR REF. AO RESSARCIMENTO DE MENSALIDADES PAGAS DE BOLSAS DE ESTUDO ENSINO SUPERIOR - NUTRIÇÃO - CONFORME LEI MUNICIPAL Nº 2042 DE 20 DE MAIO DE 2021,RELATIVO AO PAGAMENTO DA MENSALIDADE DO MÊS DE FEVEREIRO DE 2026."
         },
@@ -36845,9 +36845,9 @@
       "resumo": {
         "qtd": 29,
         "empenhado": 16069.64,
-        "liquidado": 13823.56,
+        "liquidado": 14385.08,
         "pago": 13823.56,
-        "a_pagar": 0.0
+        "a_pagar": 561.52
       }
     },
     {
@@ -37462,11 +37462,11 @@
           "tipo": "mensalidade",
           "parcela": null,
           "empenhado": 10845.0,
-          "liquidado": 0.0,
+          "liquidado": 10845.0,
           "pago": 0.0,
-          "a_pagar": 0.0,
+          "a_pagar": 10845.0,
           "data_empenho": "04/08/2026",
-          "data_liquidacao": null,
+          "data_liquidacao": "02/09/2026",
           "data_pagamento": null,
           "descricao": "VALOR REF. AO RESSARCIMENTO DE MENSALIDADES PAGAS DE BOLSAS DE ESTUDO ENSINO SUPERIOR - MEDICINA - CONFORME LEI MUNICIPAL Nº 2042 DE 20 DE MAIO DE 2021,RELATIVO AO PAGAMENTO DA MENSALIDADE DO MÊS DE JUNHO DE 2026."
         },
@@ -38051,9 +38051,9 @@
       "resumo": {
         "qtd": 33,
         "empenhado": 347587.0,
-        "liquidado": 336742.0,
+        "liquidado": 347587.0,
         "pago": 293362.0,
-        "a_pagar": 43380.0
+        "a_pagar": 54225.0
       }
     },
     {
@@ -41063,11 +41063,11 @@
           "tipo": "mensalidade",
           "parcela": null,
           "empenhado": 12238.37,
-          "liquidado": 0.0,
+          "liquidado": 12238.37,
           "pago": 0.0,
-          "a_pagar": 0.0,
+          "a_pagar": 12238.37,
           "data_empenho": "04/08/2026",
-          "data_liquidacao": null,
+          "data_liquidacao": "02/09/2026",
           "data_pagamento": null,
           "descricao": "VALOR REF. AO RESSARCIMENTO DE MENSALIDADES PAGAS DE BOLSAS DE ESTUDO ENSINO SUPERIOR - MEDICINA - CONFORME LEI MUNICIPAL Nº 2042 DE 20 DE MAIO DE 2021,RELATIVO AO PAGAMENTO DA MENSALIDADE DO MÊS DE JUNHO DE 2026."
         },
@@ -41615,9 +41615,9 @@
       "resumo": {
         "qtd": 31,
         "empenhado": 341346.75,
-        "liquidado": 329108.38,
+        "liquidado": 341346.75,
         "pago": 292393.24,
-        "a_pagar": 36715.14
+        "a_pagar": 48953.51
       }
     },
     {
@@ -42515,11 +42515,11 @@
           "tipo": "mensalidade",
           "parcela": null,
           "empenhado": 1238.61,
-          "liquidado": 0.0,
+          "liquidado": 1238.61,
           "pago": 0.0,
-          "a_pagar": 0.0,
+          "a_pagar": 1238.61,
           "data_empenho": "03/08/2026",
-          "data_liquidacao": null,
+          "data_liquidacao": "02/09/2026",
           "data_pagamento": null,
           "descricao": "VALOR REF. AO RESSARCIMENTO DE MENSALIDADES PAGAS DE BOLSAS DE ESTUDO - ENSINO SUPERIOR - ENFERMAGEM - CONFORME LEI MUNICIPAL Nº 2042 DE 20 DE MAIO DE 2021,RELATIVO AO PAGAMENTO DA MENSALIDADE DO MÊS DE JUNHO DE 2026."
         },
@@ -43104,9 +43104,9 @@
       "resumo": {
         "qtd": 33,
         "empenhado": 39319.63,
-        "liquidado": 38081.02,
+        "liquidado": 39319.63,
         "pago": 33213.0,
-        "a_pagar": 4868.02
+        "a_pagar": 6106.63
       }
     },
     {
@@ -48146,11 +48146,11 @@
           "tipo": "mensalidade",
           "parcela": null,
           "empenhado": 2425.34,
-          "liquidado": 0.0,
+          "liquidado": 2425.34,
           "pago": 0.0,
-          "a_pagar": 0.0,
+          "a_pagar": 2425.34,
           "data_empenho": "04/08/2026",
-          "data_liquidacao": null,
+          "data_liquidacao": "02/09/2026",
           "data_pagamento": null,
           "descricao": "VALOR REF. AO RESSARCIMENTO DE MENSALIDADES PAGAS DE BOLSAS DE ESTUDO ENSINO SUPERIOR - NUTRIÇÃO - CONFORME LEI MUNICIPAL Nº 2042 DE 20 DE MAIO DE 2021,RELATIVO AO PAGAMENTO DA MENSALIDADE DO MÊS DE MAIO DE 2026."
         },
@@ -48680,9 +48680,9 @@
       "resumo": {
         "qtd": 31,
         "empenhado": 54747.95,
-        "liquidado": 49897.27,
+        "liquidado": 52322.61,
         "pago": 42841.72,
-        "a_pagar": 7055.55
+        "a_pagar": 9480.89
       }
     },
     {
