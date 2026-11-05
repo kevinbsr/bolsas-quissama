@@ -120,6 +120,17 @@ def _diff_dataset(antes: dict) -> str:
     return "\n\n".join(partes)
 
 
+def _validar_csv(path: Path) -> str | None:
+    """Retorna o motivo se o export não tiver o cabeçalho de colunas e ao menos uma linha
+    de dados (o loader lê com header=4: 4 linhas de filtros/título antes das colunas)."""
+    linhas = [l for l in path.read_text(encoding="latin-1").splitlines() if l.strip()]
+    if len(linhas) < 6:
+        return f"só {len(linhas)} linha(s)"
+    if "Credor" not in linhas[4]:
+        return "cabeçalho de colunas ausente na linha 5"
+    return None
+
+
 def download_csv(ano: str, saida: Path) -> None:
     print(f"[*] Iniciando download do CSV de Movimentação Diária para o ano {ano}...")
     saida.parent.mkdir(parents=True, exist_ok=True)
@@ -168,18 +179,28 @@ def download_csv(ano: str, saida: Path) -> None:
                     pg.click("#btExportarCSV", timeout=10000)
                 except Exception:
                     pass  # nav-wait pode estourar; o expect_download captura o download
-            dl_info.value.save_as(str(saida))
-            
+            # Baixa num arquivo temporário: o portal às vezes devolve um export vazio (só o
+            # bloco de filtros). Sobrescrever o CSV bom com isso quebra a coleta e deixa o
+            # tree sujo, travando todos os runs seguintes no 'git pull --rebase'.
+            tmp = saida.with_suffix(".csv.part")
+            dl_info.value.save_as(str(tmp))
+
             # Limpa o rodapé dinâmico do PRONIM (com timestamp) para evitar commits falsos
             try:
-                conteudo = saida.read_text(encoding="latin-1")
+                conteudo = tmp.read_text(encoding="latin-1")
                 linhas = conteudo.splitlines()
                 if linhas and "PRONIM" in linhas[-1]:
                     linhas.pop()
-                    saida.write_text("\n".join(linhas) + "\n", encoding="latin-1")
+                    tmp.write_text("\n".join(linhas) + "\n", encoding="latin-1")
                     print("[*] Rodapé dinâmico do PRONIM removido para evitar commits espúrios.")
             except Exception as e:
                 print(f"[!] Aviso ao limpar o rodapé do CSV: {e}")
+
+            erro = _validar_csv(tmp)
+            if erro:
+                tmp.unlink(missing_ok=True)
+                raise RuntimeError(f"export inválido, CSV anterior mantido ({erro})")
+            tmp.replace(saida)
 
             tamanho = saida.stat().st_size
             print(f"[+] Download concluído com sucesso: {saida} ({tamanho:,} bytes)")
@@ -211,7 +232,17 @@ def run_coleta(full: bool = False) -> None:
 def git_sync() -> None:
     """Converge com a master remota ANTES de gerar dados. O repositório também recebe
     commits manuais do desenvolvedor; sem isso, o push no fim seria rejeitado
-    (non-fast-forward) e a produção nunca atualizaria. Tree limpo aqui (início do run)."""
+    (non-fast-forward) e a produção nunca atualizaria."""
+    # Arquivos gerados que um run anterior abortado pode ter deixado modificados. São
+    # regerados a cada run, então descartá-los é seguro — e sem isso o pull falha para
+    # sempre. `ajustes.json` fica de fora: é editado à mão no painel.
+    gerados = ["movimentacao-diaria", "app/dados/bolsas_publicas.json"]
+    sujos = subprocess.run(["git", "status", "--porcelain", "--untracked-files=no", "--", *gerados],
+                           cwd=str(BASE), capture_output=True, text=True).stdout.strip()
+    if sujos:
+        print(f"[!] Descartando sobras de um run anterior:\n{sujos}")
+        subprocess.run(["git", "checkout", "--", *gerados], cwd=str(BASE), check=True)
+
     print("[*] Sincronizando com a master remota (git pull --rebase origin master)...")
     res = subprocess.run(["git", "pull", "--rebase", "origin", "master"], cwd=str(BASE))
     if res.returncode != 0:
