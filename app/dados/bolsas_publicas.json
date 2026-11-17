@@ -1,7 +1,7 @@
 {
   "fonte": "Portal da Transparência de Quissamã",
   "url": "https://webapp1-quissama.cidade360.cloud/pronimtb/index.asp?acao=3&item=11",
-  "data_atualizacao": "12/11/2026 20:01",
+  "data_atualizacao": "17/11/2026 20:01",
   "alunos": [
     {
       "nome": "AMANDA LIMA CRUZ",
@@ -17558,11 +17558,11 @@
           "tipo": "mensalidade",
           "parcela": null,
           "empenhado": 1447.6,
-          "liquidado": 0.0,
+          "liquidado": 1447.6,
           "pago": 0.0,
-          "a_pagar": 0.0,
+          "a_pagar": 1447.6,
           "data_empenho": "10/11/2026",
-          "data_liquidacao": null,
+          "data_liquidacao": "17/11/2026",
           "data_pagamento": null,
           "descricao": "VALOR REF. AO RESSARCIMENTO DE MENSALIDADES PAGAS DE BOLSAS DE ESTUDO ENSINO SUPERIOR- MEDICINA VETERINÁRIA - CONFORME LEI MUNICIPAL Nº 2042 DE 20 DE MAIO DE 2021,RELATIVO AO PAGAMENTO DA MENSALIDADE DO MÊS DE NOVEMBRO DE 2025."
         },
@@ -17951,9 +17951,9 @@
       "resumo": {
         "qtd": 22,
         "empenhado": 26838.15,
-        "liquidado": 25390.55,
+        "liquidado": 26838.15,
         "pago": 17330.15,
-        "a_pagar": 8060.4
+        "a_pagar": 9508.0
       }
     },
     {
